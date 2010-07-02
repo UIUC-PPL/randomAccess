@@ -1,0 +1,28 @@
+mainmodule RandomAccess {
+    readonly CProxy_Main main;
+    readonly CProxy_DataTable table_array;
+    readonly CProxy_Updater updater_array;
+
+    readonly int num_table_entries;
+    readonly int num_table_chunks;
+    readonly int num_updaters;
+    readonly int chunk_size;
+
+    mainchare Main {
+        entry Main(CkArgMsg*);
+        entry void done();
+        entry void collectVerification(int wrong_entries);
+    }
+    
+    array [1D] DataTable {
+        entry DataTable(int num_entries);
+        entry void doUpdates(uint64_t updates[num_updates], int num_updates);
+        entry void verify();
+    }
+
+    array [1D] Updater {
+        entry Updater(int base_index);
+        entry void generateUpdates(int updates);
+        entry void updatefromremote(int size, void* data); 
+    }
+}
