@@ -1,8 +1,8 @@
 CHARMC = charmc
 BINARY = random_access
 
-SRCFILES = $(wildcard *.cc) $(wildcard *.c)
-OBJFILES = $(SRCFILES:.cc=.o) $(SRCFILES:.c=.o)
+SRCFILES = $(wildcard *.cc)
+OBJFILES = $(SRCFILES:.cc=.o)
 CIFILES = $(wildcard *.ci)
 HFILES = $(CIFILES:.ci=.decl.h) $(CIFILES:.ci=.def.h)
 
@@ -13,8 +13,10 @@ $(BINARY): $(OBJFILES)
 .SECONDARY: $(patsubst %.cc,%.decl.h,$(wildcard *.cc))
 .SECONDARY: $(patsubst %.cc,%.def.h,$(wildcard *.cc))
 
-%.decl.h %.def.h: %.ci
+%.def.h %.decl.h: %.ci
 	$(CHARMC) $(CHARMCFLAGS) $<
+
+%.o: %.cc
 
 %.o: %.cc $(HFILES)
 	$(CHARMC) $(CHARMCFLAGS) $<
