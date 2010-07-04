@@ -1,4 +1,3 @@
-
 typedef struct update_s {
   char  *poolNext;              /* pointer for memory pool */
   u64Int value;

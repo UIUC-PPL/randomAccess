@@ -1,3 +1,6 @@
+#define MAX_TOTAL_PENDING_UPDATES 1024
+#define LOCAL_BUFFER_SIZE MAX_TOTAL_PENDING_UPDATES
+
 class Main : public CBase_Main {
     public: 
         Main(CkArgMsg*);
@@ -13,13 +16,30 @@ class DataTable : public CBase_DataTable {
     public:
         DataTable(int num_entries);
         DataTable(CkMigrateMessage* m) {}
-        void doUpdates(uint64_t* updates, int num_updates);
+        void doUpdates(u64Int* updates, int num_updates);
         void verify();
 
     private:
         int base_index;
         int num_entries;
-        uint64_t* table;
+        u64Int* table;
+};
+
+class PassData : public CMessage_PassDate {
+public:
+    int size;
+    u64Int* data;
+
+    PassData(int s)
+    {
+        size = s;
+    }
+    void fillData(u64Int* d)
+    {
+        int i;
+        for(i=0; i<size; i++)
+            data[i] = d[i];
+    }
 };
 
 class Updater : public CBase_Updater {
@@ -27,16 +47,16 @@ class Updater : public CBase_Updater {
         Updater(int base_index);
         Updater(CkMigrateMessage* m) {}
         void generateUpdates(int updates);
-        void updatefromremote(int size, void* data); 
-        uint64_t nth_random(int64_t n);
+        void updatefromremote(PassData* m); 
+        u64Int nth_random(int64_t n);
 
     private:
         int iterations;
         int chunk_size;
-        uint64_t ran;
+        u64Int ran;
 
-        uint64_t LocalSendBuffer[LOCAL_BUFFER_SIZE];
-        uint64_t LocalOffset;
+        u64Int LocalSendBuffer[LOCAL_BUFFER_SIZE];
+        u64Int LocalOffset;
         Bucket_Ptr Buckets;
         int pendingUpdates;
         int maxPendingUpdates;
@@ -45,4 +65,7 @@ class Updater : public CBase_Updater {
         int peUpdates;
         int Updatesnum;
 
+        u64Int *HPCC_Table;
+
+        int GlobalStartMyProc;
 };

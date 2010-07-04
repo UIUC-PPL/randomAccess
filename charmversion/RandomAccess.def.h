@@ -68,6 +68,57 @@ extern "C" void __xlater_roPup_chunk_size(void *_impl_pup_er) {
 }
 #endif
 
+/* DEFS: message PassDate{
+u64Int data[];
+}
+;
+ */
+#ifndef CK_TEMPLATES_ONLY
+void *CMessage_PassDate::operator new(size_t s){
+  return PassDate::alloc(__idx, s, 0, 0);
+}
+void *CMessage_PassDate::operator new(size_t s, int* sz){
+  return PassDate::alloc(__idx, s, sz, 0);
+}
+void *CMessage_PassDate::operator new(size_t s, int* sz,const int pb){
+  return PassDate::alloc(__idx, s, sz, pb);
+}
+void *CMessage_PassDate::operator new(size_t s, int sz0) {
+  int sizes[1];
+  sizes[0] = sz0;
+  return PassDate::alloc(__idx, s, sizes, 0);
+}
+void *CMessage_PassDate::operator new(size_t s, int sz0, const int p) {
+  int sizes[1];
+  sizes[0] = sz0;
+  return PassDate::alloc(__idx, s, sizes, p);
+}
+void* CMessage_PassDate::alloc(int msgnum, size_t sz, int *sizes, int pb) {
+  size_t offsets[2];
+  offsets[0] = ALIGN8(sz);
+  if(sizes==0)
+    offsets[1] = offsets[0];
+  else
+    offsets[1] = offsets[0] + ALIGN8(sizeof(u64Int)*sizes[0]);
+  PassDate *newmsg = (PassDate *) CkAllocMsg(msgnum, offsets[1], pb);
+  newmsg->data = (u64Int *) ((char *)newmsg + offsets[0]);
+  return (void *) newmsg;
+}
+void CMessage_PassDate::dealloc(void *p) {
+  CkFreeMsg(p);
+}
+void* CMessage_PassDate::pack(PassDate *msg) {
+  msg->data = (u64Int *) ((char *)msg->data - (char *)msg);
+  return (void *) msg;
+}
+PassDate* CMessage_PassDate::unpack(void* buf) {
+  PassDate *msg = (PassDate *) buf;
+  msg->data = (u64Int *) ((size_t)msg->data + (char *)msg);
+  return msg;
+}
+int CMessage_PassDate::__idx=0;
+#endif
+
 /* DEFS: mainchare Main: Chare{
 Main(CkArgMsg* impl_msg);
 void done(void);
@@ -203,7 +254,7 @@ void CkIndex_Main::__register(const char *s, size_t size) {
 /* DEFS: array DataTable: ArrayElement{
 DataTable(CkMigrateMessage* impl_msg);
 DataTable(int num_entries);
-void doUpdates(const uint64_t *updates, int num_updates);
+void doUpdates(const u64Int *updates, int num_updates);
 void verify(void);
 };
  */
@@ -233,17 +284,17 @@ void CProxyElement_DataTable::insert(int num_entries, int onPE, const CkEntryOpt
    ckInsert((CkArrayMessage *)impl_msg,CkIndex_DataTable::__idx_DataTable_marshall1,onPE);
 }
 
-/* DEFS: void doUpdates(const uint64_t *updates, int num_updates);
+/* DEFS: void doUpdates(const u64Int *updates, int num_updates);
  */
-void CProxyElement_DataTable::doUpdates(const uint64_t *updates, int num_updates, const CkEntryOptions *impl_e_opts) 
+void CProxyElement_DataTable::doUpdates(const u64Int *updates, int num_updates, const CkEntryOptions *impl_e_opts) 
 {
   ckCheck();
-  //Marshall: const uint64_t *updates, int num_updates
+  //Marshall: const u64Int *updates, int num_updates
   int impl_off=0;
   int impl_arrstart=0;
   int impl_off_updates, impl_cnt_updates;
-  impl_off_updates=impl_off=CK_ALIGN(impl_off,sizeof(uint64_t));
-  impl_off+=(impl_cnt_updates=sizeof(uint64_t)*(num_updates));
+  impl_off_updates=impl_off=CK_ALIGN(impl_off,sizeof(u64Int));
+  impl_off+=(impl_cnt_updates=sizeof(u64Int)*(num_updates));
   { //Find the size of the PUP'd data
     PUP::sizer implP;
     implP|impl_off_updates;
@@ -352,17 +403,17 @@ void CkIndex_DataTable::_marshallmessagepup_DataTable_marshall1(PUP::er &implDes
   implDestP|num_entries;
 }
 
-/* DEFS: void doUpdates(const uint64_t *updates, int num_updates);
+/* DEFS: void doUpdates(const u64Int *updates, int num_updates);
  */
-void CProxy_DataTable::doUpdates(const uint64_t *updates, int num_updates, const CkEntryOptions *impl_e_opts) 
+void CProxy_DataTable::doUpdates(const u64Int *updates, int num_updates, const CkEntryOptions *impl_e_opts) 
 {
   ckCheck();
-  //Marshall: const uint64_t *updates, int num_updates
+  //Marshall: const u64Int *updates, int num_updates
   int impl_off=0;
   int impl_arrstart=0;
   int impl_off_updates, impl_cnt_updates;
-  impl_off_updates=impl_off=CK_ALIGN(impl_off,sizeof(uint64_t));
-  impl_off+=(impl_cnt_updates=sizeof(uint64_t)*(num_updates));
+  impl_off_updates=impl_off=CK_ALIGN(impl_off,sizeof(u64Int));
+  impl_off+=(impl_cnt_updates=sizeof(u64Int)*(num_updates));
   { //Find the size of the PUP'd data
     PUP::sizer implP;
     implP|impl_off_updates;
@@ -389,7 +440,7 @@ void CkIndex_DataTable::_call_doUpdates_marshall2(void* impl_msg,DataTable * imp
 {
   CkMarshallMsg *impl_msg_typed=(CkMarshallMsg *)impl_msg;
   char *impl_buf=impl_msg_typed->msgBuf;
-  /*Unmarshall pup'd fields: const uint64_t *updates, int num_updates*/
+  /*Unmarshall pup'd fields: const u64Int *updates, int num_updates*/
   PUP::fromMem implP(impl_buf);
   int impl_off_updates, impl_cnt_updates; 
   implP|impl_off_updates;
@@ -397,11 +448,11 @@ void CkIndex_DataTable::_call_doUpdates_marshall2(void* impl_msg,DataTable * imp
   int num_updates; implP|num_updates;
   impl_buf+=CK_ALIGN(implP.size(),16);
   /*Unmarshall arrays:*/
-  uint64_t *updates=(uint64_t *)(impl_buf+impl_off_updates);
+  u64Int *updates=(u64Int *)(impl_buf+impl_off_updates);
   impl_obj->doUpdates(updates, num_updates);
 }
 int CkIndex_DataTable::_callmarshall_doUpdates_marshall2(char* impl_buf,DataTable * impl_obj) {
-  /*Unmarshall pup'd fields: const uint64_t *updates, int num_updates*/
+  /*Unmarshall pup'd fields: const u64Int *updates, int num_updates*/
   PUP::fromMem implP(impl_buf);
   int impl_off_updates, impl_cnt_updates; 
   implP|impl_off_updates;
@@ -409,14 +460,14 @@ int CkIndex_DataTable::_callmarshall_doUpdates_marshall2(char* impl_buf,DataTabl
   int num_updates; implP|num_updates;
   impl_buf+=CK_ALIGN(implP.size(),16);
   /*Unmarshall arrays:*/
-  uint64_t *updates=(uint64_t *)(impl_buf+impl_off_updates);
+  u64Int *updates=(u64Int *)(impl_buf+impl_off_updates);
   impl_obj->doUpdates(updates, num_updates);
   return implP.size();
 }
 void CkIndex_DataTable::_marshallmessagepup_doUpdates_marshall2(PUP::er &implDestP,void *impl_msg) {
   CkMarshallMsg *impl_msg_typed=(CkMarshallMsg *)impl_msg;
   char *impl_buf=impl_msg_typed->msgBuf;
-  /*Unmarshall pup'd fields: const uint64_t *updates, int num_updates*/
+  /*Unmarshall pup'd fields: const u64Int *updates, int num_updates*/
   PUP::fromMem implP(impl_buf);
   int impl_off_updates, impl_cnt_updates; 
   implP|impl_off_updates;
@@ -424,7 +475,7 @@ void CkIndex_DataTable::_marshallmessagepup_doUpdates_marshall2(PUP::er &implDes
   int num_updates; implP|num_updates;
   impl_buf+=CK_ALIGN(implP.size(),16);
   /*Unmarshall arrays:*/
-  uint64_t *updates=(uint64_t *)(impl_buf+impl_off_updates);
+  u64Int *updates=(u64Int *)(impl_buf+impl_off_updates);
   if (implDestP.hasComments()) implDestP.comment("updates");
   implDestP.synchronize(PUP::sync_begin_array);
   { for (int impl_i=0;impl_i*(sizeof(*updates))<impl_cnt_updates;impl_i++) { 
@@ -459,17 +510,17 @@ void CkIndex_DataTable::_call_verify_void(void* impl_msg,DataTable * impl_obj)
 /* DEFS: DataTable(int num_entries);
  */
 
-/* DEFS: void doUpdates(const uint64_t *updates, int num_updates);
+/* DEFS: void doUpdates(const u64Int *updates, int num_updates);
  */
-void CProxySection_DataTable::doUpdates(const uint64_t *updates, int num_updates, const CkEntryOptions *impl_e_opts) 
+void CProxySection_DataTable::doUpdates(const u64Int *updates, int num_updates, const CkEntryOptions *impl_e_opts) 
 {
   ckCheck();
-  //Marshall: const uint64_t *updates, int num_updates
+  //Marshall: const u64Int *updates, int num_updates
   int impl_off=0;
   int impl_arrstart=0;
   int impl_off_updates, impl_cnt_updates;
-  impl_off_updates=impl_off=CK_ALIGN(impl_off,sizeof(uint64_t));
-  impl_off+=(impl_cnt_updates=sizeof(uint64_t)*(num_updates));
+  impl_off_updates=impl_off=CK_ALIGN(impl_off,sizeof(u64Int));
+  impl_off+=(impl_cnt_updates=sizeof(u64Int)*(num_updates));
   { //Find the size of the PUP'd data
     PUP::sizer implP;
     implP|impl_off_updates;
@@ -519,8 +570,8 @@ void CkIndex_DataTable::__register(const char *s, size_t size) {
   CkRegisterMarshallUnpackFn(__idx_DataTable_marshall1,(CkMarshallUnpackFn)_callmarshall_DataTable_marshall1);
   CkRegisterMessagePupFn(__idx_DataTable_marshall1,(CkMessagePupFn)_marshallmessagepup_DataTable_marshall1);
 
-// REG: void doUpdates(const uint64_t *updates, int num_updates);
-  __idx_doUpdates_marshall2 = CkRegisterEp("doUpdates(const uint64_t *updates, int num_updates)",
+// REG: void doUpdates(const u64Int *updates, int num_updates);
+  __idx_doUpdates_marshall2 = CkRegisterEp("doUpdates(const u64Int *updates, int num_updates)",
      (CkCallFnPtr)_call_doUpdates_marshall2, CkMarshallMsg::__idx, __idx, 0+CK_EP_NOKEEP);
   CkRegisterMarshallUnpackFn(__idx_doUpdates_marshall2,(CkMarshallUnpackFn)_callmarshall_doUpdates_marshall2);
   CkRegisterMessagePupFn(__idx_doUpdates_marshall2,(CkMessagePupFn)_marshallmessagepup_doUpdates_marshall2);
@@ -536,7 +587,7 @@ void CkIndex_DataTable::__register(const char *s, size_t size) {
 Updater(CkMigrateMessage* impl_msg);
 Updater(int base_index);
 void generateUpdates(int updates);
-void updatefromremote(int size, void* data);
+void updatefromremote(PassDate* impl_msg);
 };
  */
 #ifndef CK_TEMPLATES_ONLY
@@ -587,28 +638,14 @@ void CProxyElement_Updater::generateUpdates(int updates, const CkEntryOptions *i
   ckSend(impl_amsg, CkIndex_Updater::__idx_generateUpdates_marshall2,0);
 }
 
-/* DEFS: void updatefromremote(int size, void* data);
+/* DEFS: void updatefromremote(PassDate* impl_msg);
  */
-void CProxyElement_Updater::updatefromremote(int size, void* data, const CkEntryOptions *impl_e_opts) 
+void CProxyElement_Updater::updatefromremote(PassDate* impl_msg) 
 {
   ckCheck();
-  //Marshall: int size, void* data
-  int impl_off=0;
-  { //Find the size of the PUP'd data
-    PUP::sizer implP;
-    implP|size;
-    implP|data;
-    impl_off+=implP.size();
-  }
-  CkMarshallMsg *impl_msg=CkAllocateMarshallMsg(impl_off,impl_e_opts);
-  { //Copy over the PUP'd data
-    PUP::toMem implP((void *)impl_msg->msgBuf);
-    implP|size;
-    implP|data;
-  }
   CkArrayMessage *impl_amsg=(CkArrayMessage *)impl_msg;
   impl_amsg->array_setIfNotThere(CkArray_IfNotThere_buffer);
-  ckSend(impl_amsg, CkIndex_Updater::__idx_updatefromremote_marshall3,0);
+  ckSend(impl_amsg, CkIndex_Updater::__idx_updatefromremote_PassDate,0);
 }
 
 /* DEFS: Updater(CkMigrateMessage* impl_msg);
@@ -740,65 +777,19 @@ void CkIndex_Updater::_marshallmessagepup_generateUpdates_marshall2(PUP::er &imp
   implDestP|updates;
 }
 
-/* DEFS: void updatefromremote(int size, void* data);
+/* DEFS: void updatefromremote(PassDate* impl_msg);
  */
-void CProxy_Updater::updatefromremote(int size, void* data, const CkEntryOptions *impl_e_opts) 
+void CProxy_Updater::updatefromremote(PassDate* impl_msg) 
 {
   ckCheck();
-  //Marshall: int size, void* data
-  int impl_off=0;
-  { //Find the size of the PUP'd data
-    PUP::sizer implP;
-    implP|size;
-    implP|data;
-    impl_off+=implP.size();
-  }
-  CkMarshallMsg *impl_msg=CkAllocateMarshallMsg(impl_off,impl_e_opts);
-  { //Copy over the PUP'd data
-    PUP::toMem implP((void *)impl_msg->msgBuf);
-    implP|size;
-    implP|data;
-  }
   CkArrayMessage *impl_amsg=(CkArrayMessage *)impl_msg;
   impl_amsg->array_setIfNotThere(CkArray_IfNotThere_buffer);
-  ckBroadcast(impl_amsg, CkIndex_Updater::__idx_updatefromremote_marshall3,0);
+  ckBroadcast(impl_amsg, CkIndex_Updater::__idx_updatefromremote_PassDate,0);
 }
- int CkIndex_Updater::__idx_updatefromremote_marshall3=0;
-void CkIndex_Updater::_call_updatefromremote_marshall3(void* impl_msg,Updater * impl_obj)
+ int CkIndex_Updater::__idx_updatefromremote_PassDate=0;
+void CkIndex_Updater::_call_updatefromremote_PassDate(void* impl_msg,Updater * impl_obj)
 {
-  CkMarshallMsg *impl_msg_typed=(CkMarshallMsg *)impl_msg;
-  char *impl_buf=impl_msg_typed->msgBuf;
-  /*Unmarshall pup'd fields: int size, void* data*/
-  PUP::fromMem implP(impl_buf);
-  int size; implP|size;
-  void* data; implP|data;
-  impl_buf+=CK_ALIGN(implP.size(),16);
-  /*Unmarshall arrays:*/
-  impl_obj->updatefromremote(size, data);
-}
-int CkIndex_Updater::_callmarshall_updatefromremote_marshall3(char* impl_buf,Updater * impl_obj) {
-  /*Unmarshall pup'd fields: int size, void* data*/
-  PUP::fromMem implP(impl_buf);
-  int size; implP|size;
-  void* data; implP|data;
-  impl_buf+=CK_ALIGN(implP.size(),16);
-  /*Unmarshall arrays:*/
-  impl_obj->updatefromremote(size, data);
-  return implP.size();
-}
-void CkIndex_Updater::_marshallmessagepup_updatefromremote_marshall3(PUP::er &implDestP,void *impl_msg) {
-  CkMarshallMsg *impl_msg_typed=(CkMarshallMsg *)impl_msg;
-  char *impl_buf=impl_msg_typed->msgBuf;
-  /*Unmarshall pup'd fields: int size, void* data*/
-  PUP::fromMem implP(impl_buf);
-  int size; implP|size;
-  void* data; implP|data;
-  impl_buf+=CK_ALIGN(implP.size(),16);
-  /*Unmarshall arrays:*/
-  if (implDestP.hasComments()) implDestP.comment("size");
-  implDestP|size;
-  if (implDestP.hasComments()) implDestP.comment("data");
-  implDestP|data;
+  impl_obj->updatefromremote((PassDate*)impl_msg);
 }
 
 /* DEFS: Updater(CkMigrateMessage* impl_msg);
@@ -829,28 +820,14 @@ void CProxySection_Updater::generateUpdates(int updates, const CkEntryOptions *i
   ckSend(impl_amsg, CkIndex_Updater::__idx_generateUpdates_marshall2,0);
 }
 
-/* DEFS: void updatefromremote(int size, void* data);
+/* DEFS: void updatefromremote(PassDate* impl_msg);
  */
-void CProxySection_Updater::updatefromremote(int size, void* data, const CkEntryOptions *impl_e_opts) 
+void CProxySection_Updater::updatefromremote(PassDate* impl_msg) 
 {
   ckCheck();
-  //Marshall: int size, void* data
-  int impl_off=0;
-  { //Find the size of the PUP'd data
-    PUP::sizer implP;
-    implP|size;
-    implP|data;
-    impl_off+=implP.size();
-  }
-  CkMarshallMsg *impl_msg=CkAllocateMarshallMsg(impl_off,impl_e_opts);
-  { //Copy over the PUP'd data
-    PUP::toMem implP((void *)impl_msg->msgBuf);
-    implP|size;
-    implP|data;
-  }
   CkArrayMessage *impl_amsg=(CkArrayMessage *)impl_msg;
   impl_amsg->array_setIfNotThere(CkArray_IfNotThere_buffer);
-  ckSend(impl_amsg, CkIndex_Updater::__idx_updatefromremote_marshall3,0);
+  ckSend(impl_amsg, CkIndex_Updater::__idx_updatefromremote_PassDate,0);
 }
 
 #endif /*CK_TEMPLATES_ONLY*/
@@ -875,11 +852,9 @@ void CkIndex_Updater::__register(const char *s, size_t size) {
   CkRegisterMarshallUnpackFn(__idx_generateUpdates_marshall2,(CkMarshallUnpackFn)_callmarshall_generateUpdates_marshall2);
   CkRegisterMessagePupFn(__idx_generateUpdates_marshall2,(CkMessagePupFn)_marshallmessagepup_generateUpdates_marshall2);
 
-// REG: void updatefromremote(int size, void* data);
-  __idx_updatefromremote_marshall3 = CkRegisterEp("updatefromremote(int size, void* data)",
-     (CkCallFnPtr)_call_updatefromremote_marshall3, CkMarshallMsg::__idx, __idx, 0+CK_EP_NOKEEP);
-  CkRegisterMarshallUnpackFn(__idx_updatefromremote_marshall3,(CkMarshallUnpackFn)_callmarshall_updatefromremote_marshall3);
-  CkRegisterMessagePupFn(__idx_updatefromremote_marshall3,(CkMessagePupFn)_marshallmessagepup_updatefromremote_marshall3);
+// REG: void updatefromremote(PassDate* impl_msg);
+  __idx_updatefromremote_PassDate = CkRegisterEp("updatefromremote(PassDate* impl_msg)",
+     (CkCallFnPtr)_call_updatefromremote_PassDate, CMessage_PassDate::__idx, __idx, 0);
 
 }
 #endif
@@ -902,6 +877,13 @@ void _registerRandomAccess(void)
 
   CkRegisterReadonly("chunk_size","int",sizeof(chunk_size),(void *) &chunk_size,__xlater_roPup_chunk_size);
 
+/* REG: message PassDate{
+u64Int data[];
+}
+;
+*/
+CMessage_PassDate::__register("PassDate", sizeof(PassDate),(CkPackFnPtr) PassDate::pack,(CkUnpackFnPtr) PassDate::unpack);
+
 /* REG: mainchare Main: Chare{
 Main(CkArgMsg* impl_msg);
 void done(void);
@@ -913,7 +895,7 @@ void collectVerification(int wrong_entries);
 /* REG: array DataTable: ArrayElement{
 DataTable(CkMigrateMessage* impl_msg);
 DataTable(int num_entries);
-void doUpdates(const uint64_t *updates, int num_updates);
+void doUpdates(const u64Int *updates, int num_updates);
 void verify(void);
 };
 */
@@ -923,7 +905,7 @@ void verify(void);
 Updater(CkMigrateMessage* impl_msg);
 Updater(int base_index);
 void generateUpdates(int updates);
-void updatefromremote(int size, void* data);
+void updatefromremote(PassDate* impl_msg);
 };
 */
   CkIndex_Updater::__register("Updater", sizeof(Updater));

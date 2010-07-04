@@ -22,6 +22,42 @@
 /* DECLS: readonly int chunk_size;
  */
 
+/* DECLS: message PassDate{
+u64Int data[];
+}
+;
+ */
+class PassDate;
+class CMessage_PassDate:public CkMessage{
+  public:
+    static int __idx;
+    void* operator new(size_t, void*p) { return p; }
+    void* operator new(size_t);
+    void* operator new(size_t, int*, const int);
+    void* operator new(size_t, int*);
+#if CMK_MULTIPLE_DELETE
+    void operator delete(void*p, void*){dealloc(p);}
+    void operator delete(void*p){dealloc(p);}
+    void operator delete(void*p, int*, const int){dealloc(p);}
+    void operator delete(void*p, int*){dealloc(p);}
+#endif
+    void operator delete(void*p, size_t){dealloc(p);}
+    static void* alloc(int,size_t, int*, int);
+    static void dealloc(void *p);
+    CMessage_PassDate() {};
+    static void *pack(PassDate *p);
+    static PassDate* unpack(void* p);
+    void *operator new(size_t, int);
+    void *operator new(size_t, int, const int);
+#if CMK_MULTIPLE_DELETE
+    void operator delete(void *p, int){dealloc(p);}
+    void operator delete(void *p, int, const int){dealloc(p);}
+#endif
+    static void __register(const char *s, size_t size, CkPackFnPtr pack, CkUnpackFnPtr unpack) {
+      __idx = CkRegisterMsg(s, pack, unpack, dealloc, size);
+    }
+};
+
 /* DECLS: mainchare Main: Chare{
 Main(CkArgMsg* impl_msg);
 void done(void);
@@ -116,7 +152,7 @@ typedef CBaseT<Chare, CProxy_Main> CBase_Main;
 /* DECLS: array DataTable: ArrayElement{
 DataTable(CkMigrateMessage* impl_msg);
 DataTable(int num_entries);
-void doUpdates(const uint64_t *updates, int num_updates);
+void doUpdates(const u64Int *updates, int num_updates);
 void verify(void);
 };
  */
@@ -150,10 +186,10 @@ class CkIndex_DataTable:public CProxyElement_ArrayElement{
     static int _callmarshall_DataTable_marshall1(char* impl_buf,DataTable* impl_obj);
     static void _marshallmessagepup_DataTable_marshall1(PUP::er &p,void *msg);
 
-/* DECLS: void doUpdates(const uint64_t *updates, int num_updates);
+/* DECLS: void doUpdates(const u64Int *updates, int num_updates);
  */
     static int __idx_doUpdates_marshall2;
-    static int doUpdates(const uint64_t *updates, int num_updates) { return __idx_doUpdates_marshall2; }
+    static int doUpdates(const u64Int *updates, int num_updates) { return __idx_doUpdates_marshall2; }
     static void _call_doUpdates_marshall2(void* impl_msg,DataTable* impl_obj);
     static int _callmarshall_doUpdates_marshall2(char* impl_buf,DataTable* impl_obj);
     static void _marshallmessagepup_doUpdates_marshall2(PUP::er &p,void *msg);
@@ -225,9 +261,9 @@ inline const CkArrayIndex &ckGetIndex() const
 /* DECLS: DataTable(int num_entries);
  */
     void insert(int num_entries, int onPE=-1, const CkEntryOptions *impl_e_opts=NULL);
-/* DECLS: void doUpdates(const uint64_t *updates, int num_updates);
+/* DECLS: void doUpdates(const u64Int *updates, int num_updates);
  */
-    void doUpdates(const uint64_t *updates, int num_updates, const CkEntryOptions *impl_e_opts=NULL) ;
+    void doUpdates(const u64Int *updates, int num_updates, const CkEntryOptions *impl_e_opts=NULL) ;
 
 /* DECLS: void verify(void);
  */
@@ -297,9 +333,9 @@ inline void ckSetReductionClient(CkCallback *cb) const
     static CkArrayID ckNew(int num_entries, const CkArrayOptions &opts, const CkEntryOptions *impl_e_opts=NULL);
     static CkArrayID ckNew(int num_entries, const int s1, const CkEntryOptions *impl_e_opts=NULL);
 
-/* DECLS: void doUpdates(const uint64_t *updates, int num_updates);
+/* DECLS: void doUpdates(const u64Int *updates, int num_updates);
  */
-    void doUpdates(const uint64_t *updates, int num_updates, const CkEntryOptions *impl_e_opts=NULL) ;
+    void doUpdates(const u64Int *updates, int num_updates, const CkEntryOptions *impl_e_opts=NULL) ;
 
 /* DECLS: void verify(void);
  */
@@ -401,9 +437,9 @@ inline int ckGetNumElements(int i) const
 /* DECLS: DataTable(int num_entries);
  */
 
-/* DECLS: void doUpdates(const uint64_t *updates, int num_updates);
+/* DECLS: void doUpdates(const u64Int *updates, int num_updates);
  */
-    void doUpdates(const uint64_t *updates, int num_updates, const CkEntryOptions *impl_e_opts=NULL) ;
+    void doUpdates(const u64Int *updates, int num_updates, const CkEntryOptions *impl_e_opts=NULL) ;
 
 /* DECLS: void verify(void);
  */
@@ -417,7 +453,7 @@ typedef CBaseT<ArrayElementT<CkIndex1D>, CProxy_DataTable> CBase_DataTable;
 Updater(CkMigrateMessage* impl_msg);
 Updater(int base_index);
 void generateUpdates(int updates);
-void updatefromremote(int size, void* data);
+void updatefromremote(PassDate* impl_msg);
 };
  */
  class Updater;
@@ -458,13 +494,11 @@ class CkIndex_Updater:public CProxyElement_ArrayElement{
     static int _callmarshall_generateUpdates_marshall2(char* impl_buf,Updater* impl_obj);
     static void _marshallmessagepup_generateUpdates_marshall2(PUP::er &p,void *msg);
 
-/* DECLS: void updatefromremote(int size, void* data);
+/* DECLS: void updatefromremote(PassDate* impl_msg);
  */
-    static int __idx_updatefromremote_marshall3;
-    static int updatefromremote(int size, void* data) { return __idx_updatefromremote_marshall3; }
-    static void _call_updatefromremote_marshall3(void* impl_msg,Updater* impl_obj);
-    static int _callmarshall_updatefromremote_marshall3(char* impl_buf,Updater* impl_obj);
-    static void _marshallmessagepup_updatefromremote_marshall3(PUP::er &p,void *msg);
+    static int __idx_updatefromremote_PassDate;
+    static int updatefromremote(PassDate* impl_msg) { return __idx_updatefromremote_PassDate; }
+    static void _call_updatefromremote_PassDate(void* impl_msg,Updater* impl_obj);
 
 };
 /* --------------- element proxy ------------------ */
@@ -531,9 +565,9 @@ inline const CkArrayIndex &ckGetIndex() const
  */
     void generateUpdates(int updates, const CkEntryOptions *impl_e_opts=NULL) ;
 
-/* DECLS: void updatefromremote(int size, void* data);
+/* DECLS: void updatefromremote(PassDate* impl_msg);
  */
-    void updatefromremote(int size, void* data, const CkEntryOptions *impl_e_opts=NULL) ;
+    void updatefromremote(PassDate* impl_msg) ;
 
 };
 PUPmarshall(CProxyElement_Updater)
@@ -603,9 +637,9 @@ inline void ckSetReductionClient(CkCallback *cb) const
  */
     void generateUpdates(int updates, const CkEntryOptions *impl_e_opts=NULL) ;
 
-/* DECLS: void updatefromremote(int size, void* data);
+/* DECLS: void updatefromremote(PassDate* impl_msg);
  */
-    void updatefromremote(int size, void* data, const CkEntryOptions *impl_e_opts=NULL) ;
+    void updatefromremote(PassDate* impl_msg) ;
 
 };
 PUPmarshall(CProxy_Updater)
@@ -707,9 +741,9 @@ inline int ckGetNumElements(int i) const
  */
     void generateUpdates(int updates, const CkEntryOptions *impl_e_opts=NULL) ;
 
-/* DECLS: void updatefromremote(int size, void* data);
+/* DECLS: void updatefromremote(PassDate* impl_msg);
  */
-    void updatefromremote(int size, void* data, const CkEntryOptions *impl_e_opts=NULL) ;
+    void updatefromremote(PassDate* impl_msg) ;
 
 };
 PUPmarshall(CProxySection_Updater)

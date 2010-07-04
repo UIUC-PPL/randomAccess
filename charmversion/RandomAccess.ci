@@ -8,21 +8,26 @@ mainmodule RandomAccess {
     readonly int num_updaters;
     readonly int chunk_size;
 
+    message PassDate
+    {
+        u64Int data[];
+    };
+
     mainchare Main {
         entry Main(CkArgMsg*);
         entry void done();
         entry void collectVerification(int wrong_entries);
-    }
+    };
     
     array [1D] DataTable {
         entry DataTable(int num_entries);
-        entry void doUpdates(uint64_t updates[num_updates], int num_updates);
+        entry void doUpdates(u64Int updates[num_updates], int num_updates);
         entry void verify();
-    }
+    };
 
     array [1D] Updater {
         entry Updater(int base_index);
         entry void generateUpdates(int updates);
-        entry void updatefromremote(int size, void* data); 
-    }
-}
+        entry void updatefromremote(PassDate* m); 
+    };
+};
