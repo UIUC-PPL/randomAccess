@@ -25,29 +25,12 @@ class DataTable : public CBase_DataTable {
         u64Int* table;
 };
 
-class PassData : public CMessage_PassDate {
-public:
-    int size;
-    u64Int* data;
-
-    PassData(int s)
-    {
-        size = s;
-    }
-    void fillData(u64Int* d)
-    {
-        int i;
-        for(i=0; i<size; i++)
-            data[i] = d[i];
-    }
-};
-
 class Updater : public CBase_Updater {
     public:
         Updater(int base_index);
         Updater(CkMigrateMessage* m) {}
         void generateUpdates(int updates);
-        void updatefromremote(PassData* m); 
+        void updatefromremote(int n, u64Int data[]); 
         u64Int nth_random(int64_t n);
 
     private:

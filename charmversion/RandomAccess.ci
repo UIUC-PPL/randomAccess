@@ -8,11 +8,6 @@ mainmodule RandomAccess {
     readonly int num_updaters;
     readonly int chunk_size;
 
-    message PassDate
-    {
-        u64Int data[];
-    };
-
     mainchare Main {
         entry Main(CkArgMsg*);
         entry void done();
@@ -28,6 +23,6 @@ mainmodule RandomAccess {
     array [1D] Updater {
         entry Updater(int base_index);
         entry void generateUpdates(int updates);
-        entry void updatefromremote(PassDate* m); 
+        entry void updatefromremote(int n, u64Int data[n]); 
     };
 };

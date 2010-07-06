@@ -130,9 +130,7 @@ void Updater::generateUpdates(int num_updates)
         {
             pe = HPCC_GetUpdates(Buckets, LocalSendBuffer, localBufferSize, &peUpdates);
             pendingUpdates -= peUpdates;
-            PassData *remotedata = new (peUpdates) PassData(peUpdates);
-            remotedata->fillData(LocalSendBuffer);
-            thisProxy[pe].updatefromremote(remotedata);
+            thisProxy[pe].updatefromremote(peUpdates, LocalSendBuffer);//(remotedata);
         }
     }
 
@@ -140,22 +138,18 @@ void Updater::generateUpdates(int num_updates)
     {
         pe = HPCC_GetUpdates(Buckets, LocalSendBuffer, localBufferSize, &peUpdates);
         pendingUpdates -= peUpdates;
-        PassData *remotedata = new (peUpdates) PassData(peUpdates);
-        remotedata->fillData(LocalSendBuffer);
-        thisProxy[pe].updatefromremote(remotedata);
+        thisProxy[pe].updatefromremote(peUpdates, LocalSendBuffer);//(remotedata);
     }
     /* When to exit the whole program */
     /* broadcast the message that I am done to indicate that I will never send message. Once this processor receives all other done messages from others, it can send */
 
 }
 /* For better performance, message will be better than method parameters */
-void Updater::updatefromremote(PassDate* remotedata)
+void Updater::updatefromremote(int size, u64Int data[])
 {
     int j;
     u64Int LocalOffset;
     u64Int inmsg;
-    int size = remotedata->size;
-    u64Int *data = remotedata->data;
     for(j=0; j<size; j++)
     {
         inmsg = *((u64Int*)data+j);
