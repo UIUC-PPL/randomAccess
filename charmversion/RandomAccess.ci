@@ -21,8 +21,8 @@ mainmodule RandomAccess {
     };
 
     array [1D] Updater {
-        entry Updater(int base_index);
-        entry void generateUpdates(int updates);
+        entry Updater();
+        entry void generateUpdates();
         entry void updatefromremote(int n, u64Int data[n]); 
     };
 };

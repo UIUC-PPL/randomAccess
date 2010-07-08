@@ -27,9 +27,9 @@ class DataTable : public CBase_DataTable {
 
 class Updater : public CBase_Updater {
     public:
-        Updater(int base_index);
+        Updater();
         Updater(CkMigrateMessage* m) {}
-        void generateUpdates(int updates);
+        void generateUpdates();
         void updatefromremote(int n, u64Int data[]); 
         u64Int nth_random(int64_t n);
 

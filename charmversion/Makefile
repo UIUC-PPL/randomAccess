@@ -1,6 +1,7 @@
 CHARMC = charmc
 BINARY = random_access
 
+CHARMCFLAGS = -g
 SRCFILES = $(wildcard *.cc)
 OBJFILES = $(SRCFILES:.cc=.o)
 CIFILES = $(wildcard *.ci)

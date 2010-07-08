@@ -1,8 +1,7 @@
 #include "hpcc.h"
-#include "RandomAccess.decl.h"
 #include "buckets.h"
+#include "RandomAccess.decl.h"
 #include "RandomAccess.h"
-
 
 /* Readonly variables */
 CProxy_Main main;
@@ -18,15 +17,16 @@ int num_table_entries;
 int num_table_chunks;
 int num_updaters;
 
-int INTERREUPT = 1;
+int INTERREUPT = 10;
 int numOfChares;
 
 /* end readonly variables */
 
-Main::Main(CkArgMsg* args) :
-    total_wrong_entries(0), verification_checkins(0)
+Main::Main(CkArgMsg* args) 
 {
+
     CkAssert(args->argc == 3);
+    CkPrintf(" Local tablesize =%d, numpes=%d  %d\n", TableSize, CkNumPes(), args->argc);
     logLocalTableSize = atoi(args->argv[1]);
     LocalTableSize = 1 << logLocalTableSize;
     TableSize = LocalTableSize * CkNumPes();
@@ -41,9 +41,9 @@ Main::Main(CkArgMsg* args) :
 
 
     table_array = CProxy_DataTable::ckNew(num_table_entries / num_table_chunks, num_table_chunks);
-    updater_array = CProxy_Updater::ckNew(iterations, num_updaters);
-
-    updater_array.generateUpdates(iterations);
+    
+    updater_array = CProxy_Updater::ckNew(num_updaters);
+    //updater_array.generateUpdates();
     table_array.verify();
 }
 
@@ -85,14 +85,19 @@ void DataTable::doUpdates(u64Int* updates, int num_updates)
 //#define ZERO64B 0L
 //#define POLY 0x0000000000000007ULL
 //#define PERIOD 1317624576693539401LL
-Updater::Updater(int base_index) 
+Updater::Updater() 
 {  
+    int base_index = CkMyPe();
+
+    CkPrintf(" go to receive msg, iteration=%d\n", CkMyPe());
     ran= nth_random(base_index);
 
     HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * LocalTableSize);
     GlobalStartMyProc = thisIndex;
+
+    generateUpdates();
 }
-void Updater::generateUpdates(int num_updates)
+void Updater::generateUpdates()
 {
     int Whichchare;
     pendingUpdates = 0;
@@ -100,6 +105,7 @@ void Updater::generateUpdates(int num_updates)
     localBufferSize = LOCAL_BUFFER_SIZE;
 
 
+    CkPrintf(" go to receive msg, iteration=%d\n", CkMyPe());
     Buckets = HPCC_InitBuckets(CkNumPes(), maxPendingUpdates);
     //Ran = HPCC_starts (4 * GlobalStartMyProc);
 
@@ -109,6 +115,7 @@ void Updater::generateUpdates(int num_updates)
     {
         if(i%INTERREUPT == 0)
         {
+            CkPrintf(" go to receive msg, iteration=%d\n", i);
             CsdSchedulePoll();
         }
 
@@ -140,6 +147,8 @@ void Updater::generateUpdates(int num_updates)
         pendingUpdates -= peUpdates;
         thisProxy[pe].updatefromremote(peUpdates, LocalSendBuffer);//(remotedata);
     }
+
+    CkPrintf("processor %d update done\n", CkMyPe());
     /* When to exit the whole program */
     /* broadcast the message that I am done to indicate that I will never send message. Once this processor receives all other done messages from others, it can send */
 
@@ -150,6 +159,8 @@ void Updater::updatefromremote(int size, u64Int data[])
     int j;
     u64Int LocalOffset;
     u64Int inmsg;
+
+    CkPrintf("Received msg size=%d\n", size);
     for(j=0; j<size; j++)
     {
         inmsg = *((u64Int*)data+j);
