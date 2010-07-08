@@ -4,7 +4,7 @@
 #include "RandomAccess.h"
 
 /* Readonly variables */
-CProxy_Main main;
+CProxy_Main mainProxy;
 CProxy_DataTable table_array;
 CProxy_Updater updater_array;
 
@@ -26,14 +26,13 @@ Main::Main(CkArgMsg* args)
 {
 
     CkAssert(args->argc == 3);
-    CkPrintf(" Local tablesize =%d, numpes=%d  %d\n", TableSize, CkNumPes(), args->argc);
     logLocalTableSize = atoi(args->argv[1]);
     LocalTableSize = 1 << logLocalTableSize;
     TableSize = LocalTableSize * CkNumPes();
 
     int iterations = atoi(args->argv[2]);
     chunk_size = 1024;
-    main = thishandle;
+    mainProxy = thishandle;
     
     num_table_chunks = CkNumPes();
     num_updaters = CkNumPes();
@@ -70,7 +69,7 @@ void DataTable::verify()
 {
     int wrong_entries = 0;
     for (int i=0; i<num_entries; ++i) if (table[i] != base_index + i) wrong_entries++;
-    main.collectVerification(wrong_entries);
+    mainProxy.collectVerification(wrong_entries);
 }
 
 void DataTable::doUpdates(u64Int* updates, int num_updates)
@@ -89,7 +88,6 @@ Updater::Updater()
 {  
     int base_index = CkMyPe();
 
-    CkPrintf(" go to receive msg, iteration=%d\n", CkMyPe());
     ran= nth_random(base_index);
 
     HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * LocalTableSize);
@@ -105,7 +103,6 @@ void Updater::generateUpdates()
     localBufferSize = LOCAL_BUFFER_SIZE;
 
 
-    CkPrintf(" go to receive msg, iteration=%d\n", CkMyPe());
     Buckets = HPCC_InitBuckets(CkNumPes(), maxPendingUpdates);
     //Ran = HPCC_starts (4 * GlobalStartMyProc);
 
@@ -115,7 +112,6 @@ void Updater::generateUpdates()
     {
         if(i%INTERREUPT == 0)
         {
-            CkPrintf(" go to receive msg, iteration=%d\n", i);
             CsdSchedulePoll();
         }
 
@@ -160,7 +156,6 @@ void Updater::updatefromremote(int size, u64Int data[])
     u64Int LocalOffset;
     u64Int inmsg;
 
-    CkPrintf("Received msg size=%d\n", size);
     for(j=0; j<size; j++)
     {
         inmsg = *((u64Int*)data+j);

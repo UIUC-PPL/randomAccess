@@ -1,5 +1,5 @@
 mainmodule RandomAccess {
-    readonly CProxy_Main main;
+    readonly CProxy_Main mainProxy;
     readonly CProxy_DataTable table_array;
     readonly CProxy_Updater updater_array;
 
