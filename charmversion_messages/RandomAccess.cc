@@ -228,6 +228,8 @@ void Updater::verifyfromremote(PassData* remotedata)
             for (j=0; j<LocalTableSize; j++)
                 if (HPCC_Table[j] != j + GlobalStartMyProc)
                     NumErrors++;
+            free(shouldReceive);
+            free(alreadyReceive);
             mainProxy.collectVerification(NumErrors);
         }
     }
@@ -323,6 +325,8 @@ void Updater::verifysentDone(int src, u64Int num)
             for (j=0; j<LocalTableSize; j++)
                 if (HPCC_Table[j] != j + GlobalStartMyProc)
                     NumErrors++;
+            free(shouldReceive);
+            free(alreadyReceive);
             mainProxy.collectVerification(NumErrors);
         }
 
