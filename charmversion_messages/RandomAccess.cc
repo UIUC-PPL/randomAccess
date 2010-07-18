@@ -151,6 +151,7 @@ void Updater::generateUpdates()
         {
             ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
             Whichchare = (ran >> logLocalTableSize) & (numofchares - 1);
+            //CkPrintf("Generate chare %d====>%d, ran=%ld \n", thisIndex, Whichchare, ran);
             if(Whichchare == thisIndex)
             {
                 LocalOffset = (ran & (TableSize - 1)) - GlobalStartMyProc;
@@ -191,12 +192,13 @@ void Updater::updatefromremote(PassData* remotedata)
     u64Int inmsg;
     int size = remotedata->size;
     u64Int *data = remotedata->data;
-
+    int src = remotedata->src;
     for(j=0; j<size; j++)
     {
         inmsg = *((u64Int*)data+j);
         LocalOffset = inmsg & (LocalTableSize - 1);
         HPCC_Table[LocalOffset] ^= inmsg;
+        //CkPrintf("Update from remote chare:%d<======%d imsg=%ld\n", thisIndex, src, inmsg); 
     }
 }
 
@@ -213,6 +215,7 @@ void Updater::verifyfromremote(PassData* remotedata)
         inmsg = *((u64Int*)data+j);
         LocalOffset = (inmsg & (LocalTableSize - 1));
         HPCC_Table[LocalOffset] ^= inmsg;
+        //CkPrintf("Verify from remote chare:%d<======%d imsg=%ld\n", thisIndex, src, inmsg); 
     }
     alreadyReceive[src]  += size;
     /* all are done */
@@ -276,6 +279,7 @@ void  Updater::verify()
         while(NextSlot != (BUCKET_SIZE+FIRST_SLOT) && SendCnt>0 ) {
             Ran = (Ran << 1) ^ ((s64Int) Ran < ZERO64B ? POLY : ZERO64B);
             WhichChare = (Ran >> (logLocalTableSize)) & (numofchares - 1);
+            //CkPrintf("verify generate %d===>%d  random=%ld\n", thisIndex, WhichChare, Ran);
             PeBucketBase = WhichChare * (BUCKET_SIZE+FIRST_SLOT);
             NextSlot = LocalBuckets[PeBucketBase+SLOT_CNT];
             LocalBuckets[PeBucketBase+NextSlot] = Ran;
@@ -291,8 +295,8 @@ void  Updater::verify()
             int updatenum = LocalBuckets[PeBucketBase+SLOT_CNT] - FIRST_SLOT;
             PassData *remotedata = new (updatenum) PassData(updatenum, thisIndex);
             remotedata->fillData(LocalBuckets+PeBucketBase+FIRST_SLOT);
-            thisProxy[pe].verifyfromremote(remotedata);
-            sentCounts[pe] += updatenum;
+            thisProxy[i].verifyfromremote(remotedata);
+            sentCounts[i] += updatenum;
         }
     }
 
