@@ -1,38 +1,40 @@
 #define MAX_TOTAL_PENDING_UPDATES 1024
 #define LOCAL_BUFFER_SIZE MAX_TOTAL_PENDING_UPDATES
 
+class DUMMYMSG : public CMessage_DUMMYMSG {
+public:
+};
+
 class Main : public CBase_Main {
     public: 
         Main(CkArgMsg*);
-        void done();
-        void collectVerification(int wrong_entries);
+        void collectVerification(int errors);
+        void Quiescence1(DUMMYMSG *msg);
 
     private:
-        int total_wrong_entries;
         int verification_checkins;
-};
+        CkChareID mainhandle;
 
-class DataTable : public CBase_DataTable {
-    public:
-        DataTable(int num_entries);
-        DataTable(CkMigrateMessage* m) {}
-        void doUpdates(u64Int* updates, int num_updates);
-        void verify();
+        double starttime;
+        double startverifytime;
 
-    private:
-        int base_index;
-        int num_entries;
-        u64Int* table;
+        int verifydonenum;
+        u64Int GlbNumErrors;
+    
+        int whichQuiescence;
+
 };
 
 class PassData : public CMessage_PassData {
 public:
     int size;
+    int src;
     u64Int* data;
 
-    PassData(int s)
+    PassData(int s, int src1)
     {
         size = s;
+        src = src1;
     }
     void fillData(u64Int* d)
     {
@@ -46,13 +48,15 @@ class Updater : public CBase_Updater {
     public:
         Updater(int base_index);
         Updater(CkMigrateMessage* m) {}
-        void generateUpdates(int updates);
+        void generateUpdates();
         void updatefromremote(PassData* m); 
         u64Int nth_random(int64_t n);
-
+    
+        void verify();
+        void verifyfromremote(PassData* remotedata);
+        void verifysentDone(int src, u64Int num); 
     private:
         int iterations;
-        int chunk_size;
         u64Int ran;
 
         u64Int LocalSendBuffer[LOCAL_BUFFER_SIZE];
@@ -68,4 +72,13 @@ class Updater : public CBase_Updater {
         u64Int *HPCC_Table;
 
         int GlobalStartMyProc;
+
+        int numofdone;
+        
+        u64Int NumErrors;
+
+        u64Int* shouldReceive;
+        u64Int* alreadyReceive;
+        int verifydone;
 };
+
