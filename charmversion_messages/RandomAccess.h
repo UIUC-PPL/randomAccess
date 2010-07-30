@@ -1,6 +1,7 @@
 #define MAX_TOTAL_PENDING_UPDATES 1024
 #define LOCAL_BUFFER_SIZE MAX_TOTAL_PENDING_UPDATES
 
+extern "C" u64Int nth_random(int64_t n);
 class DUMMYMSG : public CMessage_DUMMYMSG {
 public:
 };
@@ -10,7 +11,7 @@ class Main : public CBase_Main {
         Main(CkArgMsg*);
         void collectVerification(int errors);
         void Quiescence1(DUMMYMSG *msg);
-
+        void SingleUpdate();
     private:
         int verification_checkins;
         CkChareID mainhandle;
@@ -54,7 +55,6 @@ class Updater : public CBase_Updater {
         Updater(CkMigrateMessage* m) {}
         void generateUpdates();
         void updatefromremote(PassData* m); 
-        u64Int nth_random(int64_t n);
     
         void verify();
         void verifyfromremote(PassData* remotedata);

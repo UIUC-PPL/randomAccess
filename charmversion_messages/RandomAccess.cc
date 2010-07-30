@@ -43,13 +43,19 @@ Main::Main(CkArgMsg* args)
     mainhandle = thishandle;    
     num_updaters = CkNumPes();
     numofchares = CkNumPes();
-    
+    starttime = CmiWallTimer();
+
+    if(CkNumPes() == 1)
+    {
+        SingleUpdate();
+        CkExit();
+    }
+
     for (i = 1, logNumProcs = 0; i<numofchares; logNumProcs++, i <<= 1) {
     }
     
     CkPrintf("Parameters, logLocalTableSize=%d, LocalTableSize="FSTR64", TableSize="FSTR64", logNumProcs=%d\n", logLocalTableSize, LocalTableSize, TableSize, logNumProcs);  
 
-    starttime = CmiWallTimer();
     whichQuiescence = UPDATE_QUIESCENCE; 
     updater_array = CProxy_Updater::ckNew(iterations, num_updaters);
     for(i=0; i<num_updaters; i++)
@@ -57,6 +63,48 @@ Main::Main(CkArgMsg* args)
     CkStartQD(CkIndex_Main::Quiescence1((DUMMYMSG *)0), &mainhandle);
 }
 
+void Main::SingleUpdate()
+{
+    u64Int ran;
+    u64Int randseed;
+    int i;
+    u64Int Updatesnum;
+    u64Int LocalOffset;
+    u64Int *HPCC_Table;
+   
+    ran= nth_random(randseed);
+    HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * LocalTableSize);
+
+    for(i=0; i<LocalTableSize; i++)
+        HPCC_Table[i] = i;
+
+    Updatesnum = 4 * LocalTableSize;
+
+    for(i=0; i< Updatesnum; i++)
+    {
+        ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
+        LocalOffset = (ran & (TableSize - 1));
+        HPCC_Table[LocalOffset] ^= ran;
+    }
+    
+    double singlegups;
+    double gups;
+
+    double update_walltime = CmiWallTimer() - starttime;
+    double update_cputime = CmiCpuTimer()-starttime;
+    gups = 1e-9 * TableSize * 4.0/update_walltime;
+    singlegups =  gups/CkNumPes();
+    CkPrintf("\n\nRandom Access update done\n");
+    CkPrintf("Total processor number is :%d\n", CkNumPes());
+    CkPrintf( "CPU time used = %.6f seconds\n", update_cputime );
+    CkPrintf( "Real time used = %.6f seconds\n", update_walltime);
+    CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",
+        gups);
+    CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n",
+        singlegups );
+
+
+}
 void Main::collectVerification(int errors) 
 {
     verifydonenum++;
@@ -336,7 +384,7 @@ void Updater::verifysentDone(int src, u64Int num)
  * Start the random number generation at the nth step.
  * Taken from hpcs reference implementation.
  */
-u64Int Updater::nth_random(int64_t n)
+u64Int nth_random(int64_t n)
 {
     int i, j;
     u64Int m2[64];
