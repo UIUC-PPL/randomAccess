@@ -42,6 +42,10 @@ public:
         for(i=0; i<size; i++)
             data[i] = d[i];
     }
+    u64Int* getBuffer()
+    {
+        return data;
+    }
 };
 
 class Updater : public CBase_Updater {
@@ -56,6 +60,7 @@ class Updater : public CBase_Updater {
         void verifyfromremote(PassData* remotedata);
         void verifysentDone(int src, u64Int num); 
     private:
+        int initialize_done;
         int iterations;
         u64Int ran;
 

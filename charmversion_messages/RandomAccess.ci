@@ -26,6 +26,7 @@ mainmodule RandomAccess {
     
     array [1D] Updater {
         entry Updater(int base_index);
+        entry void  generateUpdates();
         entry void updatefromremote(PassData* m); 
         entry void verify();
         entry void verifyfromremote(PassData* remotedata);

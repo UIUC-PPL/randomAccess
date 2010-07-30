@@ -1,14 +1,17 @@
-CHARMC = /expand/home/jessie/PPL/git/charm/net-linux-x86_64/bin/charmc -g
-BINARY = random_access
+CHARMC = charmc -g
+BINARY = random_access projections
 
 SRCFILES = $(wildcard *.cc)
 OBJFILES = $(SRCFILES:.cc=.o)
 CIFILES = $(wildcard *.ci)
 HFILES = $(CIFILES:.ci=.decl.h) $(CIFILES:.ci=.def.h)
 
-all: $(BINARY)
-$(BINARY): $(OBJFILES)
+all: $(BINARY) 
+random_access: $(OBJFILES)
 	$(CHARMC) -language charm++ -o $@ $+
+
+projections: $(OBJFILES)
+	$(CHARMC) -language charm++ -tracemode projections -o random_access.prj $+
 
 .SECONDARY: $(patsubst %.cc,%.decl.h,$(wildcard *.cc))
 .SECONDARY: $(patsubst %.cc,%.def.h,$(wildcard *.cc))
@@ -22,7 +25,8 @@ $(BINARY): $(OBJFILES)
 	$(CHARMC) $(CHARMCFLAGS) $<
 
 test: $(BINARY)
-	./charmrun ./$(BINARY) $(TESTFLAGS)
-
+	poe ./random_access 21 1 -llfile jobpoelapi.cmd
+testprj:random_access.prj
+	poe ./random_access.prj 20 1 +traceroot /u/home/ac/yanhuas/git/HPCC/charmversion_messages/projections_result -llfile jobpoelapi.cmd +gz-trace
 clean:
-	rm -f *.o *.decl.h *.def.h $(BINARY)* charmrun*
+	rm -f *.o *.decl.h *.def.h $(BINARY)* charmrun* random_access.prj

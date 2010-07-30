@@ -72,16 +72,23 @@ void HPCC_InsertUpdate(u64Int ran, int pe, Bucket_Ptr Buckets)
 }
 
 
+int HPCC_GetMaxUpdates(Bucket_Ptr Buckets, int *peUpdates)
+{
+    int pe;
+    Bucket_Ptr bucket;
+    HPCC_ra_Heap_ExtractMax (&pe, peUpdates);
+    bucket = Buckets + pe; /* bucket = &(Buckets[pe]); */
+    *peUpdates = bucket->numUpdates;
+    return pe;
+}
 
-int HPCC_GetUpdates(Bucket_Ptr Buckets, u64Int *bufferPtr, int bufferSize, int *peUpdates)
+void HPCC_GetUpdates(Bucket_Ptr Buckets, u64Int *bufferPtr, int pe, int peUpdates)
 {
 
-  int pe;
   Bucket_Ptr bucket;
   Update_Ptr update, tmp;
   u64Int *buffer;
 
-  HPCC_ra_Heap_ExtractMax (&pe, peUpdates);
   bucket = Buckets + pe; /* bucket = &(Buckets[pe]); */
 
   /* copy updates to buffer */
@@ -95,11 +102,8 @@ int HPCC_GetUpdates(Bucket_Ptr Buckets, u64Int *bufferPtr, int bufferSize, int *
     HPCC_PoolReturnObj(Update_Pool, tmp);
   }
 
-  *peUpdates = bucket->numUpdates;
   bucket->numUpdates = 0;
   bucket->updateList = NULL_UPDATE_PTR;
-
-  return(pe);
 
 }
 

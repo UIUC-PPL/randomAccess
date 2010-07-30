@@ -46,11 +46,14 @@ Main::Main(CkArgMsg* args)
     
     for (i = 1, logNumProcs = 0; i<numofchares; logNumProcs++, i <<= 1) {
     }
-    CkPrintf("Parameters, logLocalTableSize=%d, LocalTableSize=%d, TableSize=%d, logNumProcs=%d\n", logLocalTableSize, LocalTableSize, TableSize, logNumProcs);  
+    
+    CkPrintf("Parameters, logLocalTableSize=%d, LocalTableSize="FSTR64", TableSize="FSTR64", logNumProcs=%d\n", logLocalTableSize, LocalTableSize, TableSize, logNumProcs);  
 
     starttime = CmiWallTimer();
     whichQuiescence = UPDATE_QUIESCENCE; 
     updater_array = CProxy_Updater::ckNew(iterations, num_updaters);
+    for(i=0; i<num_updaters; i++)
+        updater_array[i].generateUpdates();
     CkStartQD(CkIndex_Main::Quiescence1((DUMMYMSG *)0), &mainhandle);
 }
 
@@ -63,7 +66,7 @@ void Main::collectVerification(int errors)
     {
         CkPrintf(  "Verification:  CPU time used = %.6f seconds\n", CmiCpuTimer() - startverifytime);
         CkPrintf(  "Verification:  Real time used = %.6f seconds\n", CmiWallTimer() - startverifytime);
-        CkPrintf(  "Found %ld  errors in %ld  locations (%s).\n",
+        CkPrintf(  "Found "FSTR64"  errors in "FSTR64"  locations (%s).\n",
             GlbNumErrors, TableSize, (GlbNumErrors <= 0.01*TableSize) ?
             "passed" : "failed");
 
@@ -103,8 +106,8 @@ void Main::Quiescence1(DUMMYMSG *msg)
 
 Updater::Updater(int base_index) 
 { 
+    int i=0;
     u64Int randseed;
-    int i;
     GlobalStartMyProc = thisIndex * LocalTableSize  ;
     randseed = 4 * GlobalStartMyProc; 
     ran= nth_random(randseed);
@@ -125,8 +128,8 @@ Updater::Updater(int base_index)
         alreadyReceive[i] = 0;
     }
     verifydone = 0;
-    generateUpdates();
-}
+
+  }
 void Updater::generateUpdates()
 {
     int Whichchare;
@@ -151,7 +154,6 @@ void Updater::generateUpdates()
         {
             ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
             Whichchare = (ran >> logLocalTableSize) & (numofchares - 1);
-            //CkPrintf("Generate chare %d====>%d, ran=%ld \n", thisIndex, Whichchare, ran);
             if(Whichchare == thisIndex)
             {
                 LocalOffset = (ran & (TableSize - 1)) - GlobalStartMyProc;
@@ -164,20 +166,21 @@ void Updater::generateUpdates()
             i++;
         }else
         {
-            pe = HPCC_GetUpdates(Buckets, LocalSendBuffer, localBufferSize, &peUpdates);
-            pendingUpdates -= peUpdates;
+            pe = HPCC_GetMaxUpdates(Buckets, &peUpdates);
             PassData *remotedata = new (peUpdates, 0) PassData(peUpdates, thisIndex);
-            remotedata->fillData(LocalSendBuffer);
+            HPCC_GetUpdates(Buckets, remotedata->getBuffer(), pe, peUpdates);
+            pendingUpdates -= peUpdates;
             thisProxy[pe].updatefromremote(remotedata);
         }
     }
 
     while(pendingUpdates > 0)
     {
-        pe = HPCC_GetUpdates(Buckets, LocalSendBuffer, localBufferSize, &peUpdates);
+        pe = HPCC_GetMaxUpdates(Buckets, &peUpdates);
+        PassData *remotedata = new (peUpdates, 0) PassData(peUpdates, thisIndex);
+        HPCC_GetUpdates(Buckets, remotedata->getBuffer(), pe, peUpdates);
+        
         pendingUpdates -= peUpdates;
-        PassData *remotedata = new (peUpdates) PassData(peUpdates, thisIndex);
-        remotedata->fillData(LocalSendBuffer);
         thisProxy[pe].updatefromremote(remotedata);
     }
     /* When to exit the whole program */
@@ -198,7 +201,6 @@ void Updater::updatefromremote(PassData* remotedata)
         inmsg = *((u64Int*)data+j);
         LocalOffset = inmsg & (LocalTableSize - 1);
         HPCC_Table[LocalOffset] ^= inmsg;
-        //CkPrintf("Update from remote chare:%d<======%d imsg=%ld\n", thisIndex, src, inmsg); 
     }
 }
 
@@ -215,7 +217,6 @@ void Updater::verifyfromremote(PassData* remotedata)
         inmsg = *((u64Int*)data+j);
         LocalOffset = (inmsg & (LocalTableSize - 1));
         HPCC_Table[LocalOffset] ^= inmsg;
-        //CkPrintf("Verify from remote chare:%d<======%d imsg=%ld\n", thisIndex, src, inmsg); 
     }
     alreadyReceive[src]  += size;
     /* all are done */
@@ -281,7 +282,6 @@ void  Updater::verify()
         while(NextSlot != (BUCKET_SIZE+FIRST_SLOT) && SendCnt>0 ) {
             Ran = (Ran << 1) ^ ((s64Int) Ran < ZERO64B ? POLY : ZERO64B);
             WhichChare = (Ran >> (logLocalTableSize)) & (numofchares - 1);
-            //CkPrintf("verify generate %d===>%d  random=%ld\n", thisIndex, WhichChare, Ran);
             PeBucketBase = WhichChare * (BUCKET_SIZE+FIRST_SLOT);
             NextSlot = LocalBuckets[PeBucketBase+SLOT_CNT];
             LocalBuckets[PeBucketBase+NextSlot] = Ran;
