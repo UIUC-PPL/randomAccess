@@ -1,0 +1,36 @@
+# Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,      
+# 2003, 2004, 2005, 2006, 2007, 2008, 2009  Free Software Foundation,      
+# Inc. This Makefile is free software; the Free Software Foundation        
+# gives unlimited permission to copy and/or distribute it,                 
+# with or without modifications, as long as this notice is preserved.      
+
+# This program is distributed in the hope that it will be useful,          
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without        
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A            
+# PARTICULAR PURPOSE.                         
+
+CC =  mpCC
+CXX = mpcc
+CFLAGS = -O3  -openmp
+#CFLAGS = -O3 -fomit-frame-pointer -funroll-loops -openmp
+INCDIR = -Iinclude/
+LDFLAGS = $(CFLAGS)  
+TARGET = ra_mpiomp
+OBJECTS = MPIRandomAccess.o MPIRandomAccess_opt.o heap.o time_bound.o MPIRandomAccess_vanilla.o hpcc.o utility.o io.o verification.o pool.o buckets.o noopt.o HPL_all_reduce.o HPL_fprintf.o  HPL_pabort.o   HPL_reduce.o HPL_broadcast.o   HPL_max.o HPL_pdlamch.o  HPL_slamch.o HPL_dlamch.o HPL_min.o HPL_pwarn.o HPL_timer_cputime.o HPL_pdinfo.o
+
+.SUFFIXES: .c
+
+.c.o:
+	$(CC) -DRA_SANDIA_NOPT=1 -DOPENMP=1 $(INCDIR) $(CFLAGS) -c $<
+
+all: RAMPIOMP
+
+RAMPIOMP: $(OBJECTS) 
+	$(CC) -DRA_SANDIA_NOPT=1 -DOPENMP=1 $(INCDIR) $(CFLAGS) $(OBJECTS) -o $(TARGET)
+
+clean:
+	/bin/rm -f $(OBJECTS) core
+
+cleanall: 
+	/bin/rm -f $(OBJECTS)  $(TARGET) core
+

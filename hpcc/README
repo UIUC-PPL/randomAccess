@@ -1,0 +1,44 @@
+HPCC Random Access Benchmarks
+===============================
+
+Compiling
+----------
+
+1. To compile the vanilla, unoptimized version
+   make -f Makefile.nopt
+
+2. To compile the optimized version:
+   make -f Makefile.opt
+
+3. To compile the hybrid MPI/OpenMP version:
+   make -f Makefile.mpiomp
+
+Running
+------------------
+
+1. To run the MPI code
+
+mpirun -np #procs executable
+
+2. To run the hybrid MPI/OpenMP code
+
+Set the OMP_NUM_THREADS environment variable to the number of threads
+
+e.g. $export OMP_NUM_THREADS=4
+
+mpirun -np #procs executable
+
+#procs is the number of processes
+
+
+
+Cleaning up
+----------- 
+
+1. To clean only the object files
+
+make -f Makefile.nopt clean  #specify any Makefile
+
+2. To clean object files and executables
+
+make -f Makefile.nopt cleanall #specify any Makefile
