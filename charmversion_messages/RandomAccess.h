@@ -1,7 +1,6 @@
 #define MAX_TOTAL_PENDING_UPDATES 1024
 #define LOCAL_BUFFER_SIZE MAX_TOTAL_PENDING_UPDATES
 
-extern "C" u64Int nth_random(int64_t n);
 class DUMMYMSG : public CMessage_DUMMYMSG {
 public:
 };
@@ -51,7 +50,7 @@ public:
 
 class Updater : public CBase_Updater {
     public:
-        Updater(int base_index);
+        Updater();
         Updater(CkMigrateMessage* m) {}
         void generateUpdates();
         void updatefromremote(PassData* m); 

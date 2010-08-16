@@ -8,13 +8,9 @@
 CProxy_Main mainProxy;
 CProxy_Updater updater_array;
 
-int logNumProcs;
 int logLocalTableSize;
 u64Int LocalTableSize;
 u64Int TableSize;
-
-int num_updaters;
-
 int numofchares;
 #define  UPDATE_QUIESCENCE  0
 #define  VERIFY_QUIESCENCE 1
@@ -26,39 +22,32 @@ int numofchares;
 
 /* end readonly variables */
 
+u64Int nth_random(int64_t n);
+
 Main::Main(CkArgMsg* args) 
 {
     int i;
    
-    CkPrintf("Usage: RandomAccess loglocaltablesize iteration\n");
-    CkAssert(args->argc == 3);
+    CkPrintf("Usage: RandomAccess loglocaltablesize\n");
+    CkAssert(args->argc == 2);
+    
     logLocalTableSize = atoi(args->argv[1]);
     LocalTableSize = 1 << logLocalTableSize;
-    TableSize = LocalTableSize * CkNumPes();
+    numofchares = CkNumPes();
+    TableSize = LocalTableSize * numofchares ;
 
-    CkPrintf(" start program...\n");
-    int iterations = atoi(args->argv[2]);
-    
     mainProxy = thishandle;
     mainhandle = thishandle;    
-    num_updaters = CkNumPes();
-    numofchares = CkNumPes();
     starttime = CmiWallTimer();
 
-    if(CkNumPes() == 1)
+    if(numofchares == 1)
     {
         SingleUpdate();
         CkExit();
     }
 
-    for (i = 1, logNumProcs = 0; i<numofchares; logNumProcs++, i <<= 1) {
-    }
-    
-    CkPrintf("Parameters, logLocalTableSize=%d, LocalTableSize="FSTR64", TableSize="FSTR64", logNumProcs=%d\n", logLocalTableSize, LocalTableSize, TableSize, logNumProcs);  
-
-    whichQuiescence = UPDATE_QUIESCENCE; 
-    updater_array = CProxy_Updater::ckNew(iterations, num_updaters);
-    for(i=0; i<num_updaters; i++)
+    updater_array = CProxy_Updater::ckNew(numofchares);
+    for(i=0; i<numofchares; i++)
         updater_array[i].generateUpdates();
     CkStartQD(CkIndex_Main::Quiescence1((DUMMYMSG *)0), &mainhandle);
 }
@@ -74,11 +63,9 @@ void Main::SingleUpdate()
    
     ran= nth_random(randseed);
     HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * LocalTableSize);
-
+    Updatesnum = 4 * LocalTableSize;
     for(i=0; i<LocalTableSize; i++)
         HPCC_Table[i] = i;
-
-    Updatesnum = 4 * LocalTableSize;
 
     for(i=0; i< Updatesnum; i++)
     {
@@ -86,10 +73,8 @@ void Main::SingleUpdate()
         LocalOffset = (ran & (TableSize - 1));
         HPCC_Table[LocalOffset] ^= ran;
     }
-    
     double singlegups;
     double gups;
-
     double update_walltime = CmiWallTimer() - starttime;
     double update_cputime = CmiCpuTimer()-starttime;
     gups = 1e-9 * TableSize * 4.0/update_walltime;
@@ -102,8 +87,6 @@ void Main::SingleUpdate()
         gups);
     CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n",
         singlegups );
-
-
 }
 void Main::collectVerification(int errors) 
 {
@@ -126,38 +109,33 @@ void Main::Quiescence1(DUMMYMSG *msg)
 {
     double singlegups;
     double gups;
-   
-    if(whichQuiescence == UPDATE_QUIESCENCE)
-    {
-        double update_walltime = CmiWallTimer() - starttime;
-        double update_cputime = CmiCpuTimer()-starttime;
-        gups = 1e-9 * TableSize * 4.0/update_walltime;
-        singlegups =  gups/CkNumPes();
-        CkPrintf("\n\nRandom Access update done\n");
-        CkPrintf("Total processor number is :%d\n", CkNumPes());
-        CkPrintf( "CPU time used = %.6f seconds\n", update_cputime );
-        CkPrintf( "Real time used = %.6f seconds\n", update_walltime);
-        CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",
-            gups);
-        CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n",
-            singlegups );
 
-        CkPrintf("\n\n Start verifying...\n");
+    double update_walltime = CmiWallTimer() - starttime;
+    double update_cputime = CmiCpuTimer()-starttime;
+    gups = 1e-9 * TableSize * 4.0/update_walltime;
+    singlegups =  gups/numofchares;
+    CkPrintf("\n\nRandom Access update done\n");
+    CkPrintf("Total processor number is :%d\n", CkNumPes());
+    CkPrintf( "CPU time used = %.6f seconds\n", update_cputime );
+    CkPrintf( "Real time used = %.6f seconds\n", update_walltime);
+    CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",
+        gups);
+    CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n",
+        singlegups );
 
-        startverifytime = CmiWallTimer();
-        verifydonenum = 0;
-        GlbNumErrors = 0;
-        whichQuiescence = VERIFY_QUIESCENCE;
-        updater_array.verify();
-    }
+    CkPrintf("\n\n Start verifying...\n");
+
+    startverifytime = CmiWallTimer();
+    verifydonenum = 0;
+    GlbNumErrors = 0;
+    updater_array.verify();
 }
 
-Updater::Updater(int base_index) 
+Updater::Updater() 
 { 
-    int i=0;
-    u64Int randseed;
+    int i;
     GlobalStartMyProc = thisIndex * LocalTableSize  ;
-    randseed = 4 * GlobalStartMyProc; 
+    u64Int randseed = 4 * GlobalStartMyProc; 
     ran= nth_random(randseed);
     HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * LocalTableSize);
     
@@ -182,7 +160,7 @@ void Updater::generateUpdates()
 {
     int Whichchare;
     u64Int Updatesnum;
-    int i=0;
+    int i;
 
     pendingUpdates = 0;
     maxPendingUpdates = MAX_TOTAL_PENDING_UPDATES;
@@ -231,9 +209,6 @@ void Updater::generateUpdates()
         pendingUpdates -= peUpdates;
         thisProxy[pe].updatefromremote(remotedata);
     }
-    /* When to exit the whole program */
-    /* broadcast the message that I am done to indicate that I will never send message. Once this processor receives all other done messages from others, it can send */
-
 }
 /* For better performance, message will be better than method parameters */
 void Updater::updatefromremote(PassData* remotedata)
@@ -243,7 +218,6 @@ void Updater::updatefromremote(PassData* remotedata)
     u64Int inmsg;
     int size = remotedata->size;
     u64Int *data = remotedata->data;
-    int src = remotedata->src;
     for(j=0; j<size; j++)
     {
         inmsg = *((u64Int*)data+j);
@@ -287,7 +261,6 @@ void Updater::verifyfromremote(PassData* remotedata)
 
 void  Updater::verify()
 {
-
     int NumProcs;
     int MyProc;
     s64Int *NumErrors;
@@ -300,19 +273,15 @@ void  Updater::verify()
     s64Int errors;
     int i;
     int j;
-    int sAbort, rAbort;
 
     u64Int *LocalBuckets;     /* buckets used in verification phase */
     u64Int *sentCounts;
 
     MyProc = thisIndex;
-    
     sentCounts = (u64Int*) malloc ( sizeof(u64Int) * numofchares);
     LocalBuckets = (u64Int*) malloc ( sizeof(u64Int) * numofchares*(BUCKET_SIZE+FIRST_SLOT));
-    sAbort = 0; if (! LocalBuckets) sAbort = 1;
     SendCnt  = 4 * LocalTableSize; 
     Ran= nth_random( 4 * thisIndex * LocalTableSize);
-
 
     for(i=0; i<numofchares; i++)
     {

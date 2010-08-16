@@ -2,12 +2,9 @@ mainmodule RandomAccess {
     readonly CProxy_Main mainProxy;
     readonly CProxy_Updater updater_array;
 
-    readonly int num_updaters;
-
     readonly int numofchares;
 
     readonly int logLocalTableSize;
-    readonly int logNumProcs;
     readonly u64Int LocalTableSize;
     readonly u64Int TableSize;
     
@@ -25,7 +22,7 @@ mainmodule RandomAccess {
     };
     
     array [1D] Updater {
-        entry Updater(int base_index);
+        entry Updater();
         entry void  generateUpdates();
         entry void updatefromremote(PassData* m); 
         entry void verify();
