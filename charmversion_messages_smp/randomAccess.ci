@@ -1,0 +1,41 @@
+mainmodule RandomAccess {
+    readonly CProxy_Main mainProxy;
+    readonly CProxy_Updater updater_array;
+
+    readonly int numofchares;
+
+    readonly int logLocalTableSize;
+    readonly u64Int LocalTableSize;
+    readonly u64Int TableSize;
+    
+    message PassData
+    {
+        u64Int data[];
+    };
+    
+    message DUMMYMSG;
+
+    mainchare Main {
+        entry Main(CkArgMsg*);
+        entry void collectVerification(int wrong_entries);
+        entry void allUpdatesDone(DUMMYMSG *msg);
+    };
+    
+    array [1D] Generator {
+        entry Generator();
+        entry void  generateUpdates();
+        entry void updatefromremote(PassData* m); 
+        entry void verify();
+        entry void verifyfromremote(PassData* remotedata);
+        entry void verifysentDone(int src, u64Int num); 
+    };
+
+    array [1D] Updater {
+        entry Updater();
+        entry void  generateUpdates();
+        entry void updatefromremote(PassData* m); 
+        entry void verify();
+        entry void verifyfromremote(PassData* remotedata);
+        entry void verifysentDone(int src, u64Int num); 
+    };
+};
