@@ -12,7 +12,7 @@ CProxy_Main mainProxy;
 CProxy_Generator generator_array;
 CProxy_Updater updater_array;
 
-int loglocalTableSize;
+int logLocalTableSize;
 u64Int localTableSize;
 u64Int tableSize;
 int numOfNodes;
@@ -42,11 +42,11 @@ public:
 
 Main::Main(CkArgMsg* args) 
 {
-    CkPrintf("Usage: RandomAccess loglocaltablesize\n Must be running on smp with (ppn 2)\n");
+    CkPrintf("Usage: RandomAccess logLocaltablesize\n Must be running on smp with (ppn 2)\n");
     CkAssert(args->argc == 2);
     
-    loglocalTableSize = atoi(args->argv[1]);
-    localTableSize = 1 << loglocalTableSize;
+    logLocalTableSize = atoi(args->argv[1]);
+    localTableSize = 1 << logLocalTableSize;
     numOfNodes = CkNumNodes();
     tableSize = localTableSize * numOfNodes ;
 
@@ -55,16 +55,16 @@ Main::Main(CkArgMsg* args)
     starttime = CmiWallTimer();
 
     CProxy_PMEMap generatorMap=CProxy_PMEMap::ckNew(0);
-    CkArrayOptions opts_generator(numofNodes);
+    CkArrayOptions opts_generator(numOfNodes);
     opts_generator.setMap(generatorMap);
 
-    generator_array = CProxy_Generator::ckNew(numOfNodes, generatorMap);
+    generator_array = CProxy_Generator::ckNew(opts_generator);
     
     
     CProxy_PMEMap updaterMap=CProxy_PMEMap::ckNew(1);
-    CkArrayOptions opts_updater(numofNodes);
+    CkArrayOptions opts_updater(numOfNodes);
     opts_updater.setMap(updaterMap);
-    updater_array   = CProxy_Updater::ckNew(numOfNodes, updaterMap);
+    updater_array   = CProxy_Updater::ckNew(opts_updater);
     
     generator_array.generateUpdates();
     phase = UPDATE_QUIESCENCE;      //randomAccess phase 
@@ -116,8 +116,6 @@ void Main::verifyDone(CkReductionMsg *msg)
 Generator::Generator() 
 { 
     int GlobalStartmyProc = thisIndex * localTableSize  ;
-    u64Int randseed = 4 * GlobalStartmyProc; 
-    ran= nth_random(randseed);
     HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * localTableSize);
     /* Initialize Table */
     for(int i=0; i<localTableSize; i++)
@@ -134,9 +132,13 @@ void Generator::generateUpdates()
     int pendingUpdates;
     int Updatesnum;
     PassData *remoteData;
+
+    int GlobalStartmyProc = thisIndex * localTableSize  ;
+    u64Int randseed = 4 * GlobalStartmyProc; 
+    ran= nth_random(randseed);
+    
     pendingUpdates = 0;
     updatesNum = 4 * localTableSize;
-
     buckets = HPCC_InitBuckets(numOfNodes, MAX_TOTAL_PENDING_UPDATES);
 
     for(int i=0; i<updatesNum;)
@@ -144,7 +146,7 @@ void Generator::generateUpdates()
         if (pendingUpdates < MAX_TOTAL_PENDING_UPDATES)
         {
             ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
-            tableIndex = (ran >> loglocalTableSize) & (numOfNodes - 1);
+            tableIndex = (ran >> logLocalTableSize) & (numOfNodes - 1);
             HPCC_InsertUpdate(ran, tableIndex, buckets);
             pendingUpdates++;
             i++;
@@ -152,7 +154,7 @@ void Generator::generateUpdates()
         {
             tableIndex = HPCC_GetMaxUpdates(buckets, &peUpdates);
             remoteData = new (peUpdates, 0) PassData(peUpdates, thisIndex);
-            HPCC_GetUpdates(buckets, remotedata->getBuffer(), tableIndex, peUpdates);
+            HPCC_GetUpdates(buckets, remoteData->getBuffer(), tableIndex, peUpdates);
             pendingUpdates -= peUpdates;
             updater_array[tableIndex].updateLocalTable(remoteData);
         }
@@ -162,7 +164,7 @@ void Generator::generateUpdates()
     {
         tableIndex = HPCC_GetMaxUpdates(buckets, &peUpdates);
         PassData *remoteData = new (peUpdates, 0) PassData(peUpdates, thisIndex);
-        HPCC_GetUpdates(buckets, remotedata->getBuffer(), tableIndex, peUpdates);
+        HPCC_GetUpdates(buckets, remoteData->getBuffer(), tableIndex, peUpdates);
         
         pendingUpdates -= peUpdates;
         updater_array[tableIndex].updateLocalTable(remoteData);
