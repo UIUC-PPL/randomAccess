@@ -43,9 +43,11 @@ public:
 Main::Main(CkArgMsg* args) 
 {
     CkPrintf("Usage: RandomAccess logLocaltablesize\n Must be running on smp with (ppn 2)\n");
-    CkAssert(args->argc == 2);
     
     logLocalTableSize = atoi(args->argv[1]);
+    delete args;
+
+    CkPrintf("numnodes=%d, pes=%d\n", CkNumNodes(), CkNumPes());
     localTableSize = 1 << logLocalTableSize;
     numOfNodes = CkNumNodes();
     tableSize = localTableSize * numOfNodes ;
@@ -90,14 +92,16 @@ void Main::allUpdatesDone(DUMMYMSG *msg)
         CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
         CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
 
-        CkPrintf("\n\n Start verifying...\n");
+        CkPrintf("\n\nStart verifying...\n");
 
         starttime = CmiWallTimer();
         phase = VERIFY_QUIESCENCE;      //verify
         generator_array.generateUpdates();
+        CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
     }else if(phase == VERIFY_QUIESCENCE)
     {
         //verify done
+       CkPrintf("verify done\n");
        updater_array.checkErrors(); 
     }
 }
@@ -175,15 +179,15 @@ Updater::Updater(){}
 /* For better performance, message will be better than method parameters */
 void Updater::updateLocalTable(PassData* remotedata)
 {
-    u64Int LocalOffset;
+    u64Int localOffset;
     u64Int inmsg;
     int size = remotedata->size;
     u64Int *data = remotedata->data;
     for(int j=0; j<size; j++)
     {
         inmsg = *((u64Int*)data+j);
-        LocalOffset = inmsg & (localTableSize - 1);
-        HPCC_Table[LocalOffset] ^= inmsg;
+        localOffset = inmsg & (localTableSize - 1);
+        HPCC_Table[localOffset] ^= inmsg;
     }
 }
 
