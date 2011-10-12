@@ -1,0 +1,37 @@
+mainmodule RandomAccess {
+    readonly CProxy_Main mainProxy;
+    readonly CProxy_Updater updater_array;
+    readonly  CProxy_Generator generator_array;
+    readonly int numOfUpdators;
+    readonly int logLocalTableSize;
+    readonly u64Int localTableSize;
+    readonly u64Int tableSize;
+
+    group PMEMap : CkArrayMap {
+        entry PMEMap(int);
+    }
+
+    message PassData
+    {
+        u64Int data[];
+    };
+    
+    message DUMMYMSG;
+
+    mainchare Main {
+        entry Main(CkArgMsg*);
+        entry void verifyDone(CkReductionMsg *msg); 
+        entry void allUpdatesDone(DUMMYMSG *msg);
+    };
+    
+    array [1D] Generator {
+        entry Generator();
+        entry void  generateUpdates();
+    };
+
+    array [1D] Updater {
+        entry Updater();
+        entry void updateLocalTable(PassData* m); 
+       entry  void checkErrors();
+    };
+};
