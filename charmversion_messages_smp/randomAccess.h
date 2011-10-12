@@ -45,6 +45,7 @@ public:
 };
 
 class Updater : public CBase_Updater {
+    u64Int *HPCC_Table;
 public:
     Updater();
     Updater(CkMigrateMessage* m) {}

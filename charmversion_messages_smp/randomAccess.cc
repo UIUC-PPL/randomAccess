@@ -15,10 +15,9 @@ CProxy_Updater updater_array;
 int logLocalTableSize;
 u64Int localTableSize;
 u64Int tableSize;
-int numOfNodes;
+int numOfUpdators;
 
 /* node-level share variable */
-u64Int *HPCC_Table;
 
 class PMEMap : public CkArrayMap
 {
@@ -49,22 +48,22 @@ Main::Main(CkArgMsg* args)
 
     CkPrintf("numnodes=%d, pes=%d\n", CkNumNodes(), CkNumPes());
     localTableSize = 1 << logLocalTableSize;
-    numOfNodes = CkNumNodes();
-    tableSize = localTableSize * numOfNodes ;
+    numOfUpdators = CkNumPes()/2;
+    tableSize = localTableSize * numOfUpdators ;
 
     mainProxy = thishandle;
     mainhandle = thishandle;    
     starttime = CmiWallTimer();
 
     CProxy_PMEMap generatorMap=CProxy_PMEMap::ckNew(0);
-    CkArrayOptions opts_generator(numOfNodes);
+    CkArrayOptions opts_generator(numOfUpdators);
     opts_generator.setMap(generatorMap);
 
     generator_array = CProxy_Generator::ckNew(opts_generator);
     
     
     CProxy_PMEMap updaterMap=CProxy_PMEMap::ckNew(1);
-    CkArrayOptions opts_updater(numOfNodes);
+    CkArrayOptions opts_updater(numOfUpdators);
     opts_updater.setMap(updaterMap);
     updater_array   = CProxy_Updater::ckNew(opts_updater);
     
@@ -84,7 +83,7 @@ void Main::allUpdatesDone(DUMMYMSG *msg)
     if(phase == UPDATE_QUIESCENCE)
     {
         gups = 1e-9 * tableSize * 4.0/update_walltime;
-        singlegups =  gups/numOfNodes;
+        singlegups =  gups/numOfUpdators;
         CkPrintf("\n\nRandom Access update done\n");
         CkPrintf("Total node number is :%d\n", CkNumNodes());
         CkPrintf( "CPU time used = %.6f seconds\n", update_cputime );
@@ -119,11 +118,6 @@ void Main::verifyDone(CkReductionMsg *msg)
 
 Generator::Generator() 
 { 
-    int GlobalStartmyProc = thisIndex * localTableSize  ;
-    HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * localTableSize);
-    /* Initialize Table */
-    for(int i=0; i<localTableSize; i++)
-        HPCC_Table[i] = i + GlobalStartmyProc;
 }
 
 void Generator::generateUpdates()
@@ -143,14 +137,14 @@ void Generator::generateUpdates()
     
     pendingUpdates = 0;
     updatesNum = 4 * localTableSize;
-    buckets = HPCC_InitBuckets(numOfNodes, MAX_TOTAL_PENDING_UPDATES);
+    buckets = HPCC_InitBuckets(numOfUpdators, MAX_TOTAL_PENDING_UPDATES);
 
     for(int i=0; i<updatesNum;)
     {
         if (pendingUpdates < MAX_TOTAL_PENDING_UPDATES)
         {
             ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
-            tableIndex = (ran >> logLocalTableSize) & (numOfNodes - 1);
+            tableIndex = (ran >> logLocalTableSize) & (numOfUpdators - 1);
             HPCC_InsertUpdate(ran, tableIndex, buckets);
             pendingUpdates++;
             i++;
@@ -175,7 +169,14 @@ void Generator::generateUpdates()
     }
 }
 
-Updater::Updater(){}
+Updater::Updater(){
+
+    int GlobalStartmyProc = thisIndex * localTableSize  ;
+    HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * localTableSize);
+    /* Initialize Table */
+    for(int i=0; i<localTableSize; i++)
+        HPCC_Table[i] = i + GlobalStartmyProc;
+}
 /* For better performance, message will be better than method parameters */
 void Updater::updateLocalTable(PassData* remotedata)
 {

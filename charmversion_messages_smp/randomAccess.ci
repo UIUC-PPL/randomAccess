@@ -2,7 +2,7 @@ mainmodule RandomAccess {
     readonly CProxy_Main mainProxy;
     readonly CProxy_Updater updater_array;
     readonly  CProxy_Generator generator_array;
-    readonly int numOfNodes;
+    readonly int numOfUpdators;
     readonly int logLocalTableSize;
     readonly u64Int localTableSize;
     readonly u64Int tableSize;
