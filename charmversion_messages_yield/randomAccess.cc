@@ -1,5 +1,5 @@
 #include "hpcc.h"
-#include "RandomAccess.decl.h"
+#include "randomAccess.decl.h"
 #include "buckets.h"
 #include "randomAccess.h"
 #include "util.h"
@@ -7,6 +7,7 @@
 #define  UPDATE_QUIESCENCE  0
 #define  VERIFY_QUIESCENCE 1
 
+#define  WORK_ON_ONE_PE    1
 /* Readonly variables */
 CProxy_Main mainProxy;
 CProxy_Generator generator_array;
@@ -41,32 +42,41 @@ public:
 
 Main::Main(CkArgMsg* args) 
 {
-    CkPrintf("Usage: RandomAccess logLocaltablesize\n Must be running on smp with (ppn 2)\n");
+    CkPrintf("Usage: RandomAccess logLocaltablesize\n");
     
     logLocalTableSize = atoi(args->argv[1]);
     delete args;
 
-    CkPrintf("numnodes=%d, pes=%d\n", CkNumNodes(), CkNumPes());
-    localTableSize = 1 << logLocalTableSize;
+#ifdef WORK_ON_ONE_PE 
+    numOfUpdators = CkNumPes();
+#else
     numOfUpdators = CkNumPes()/2;
+#endif
+
+    localTableSize = 1l << logLocalTableSize;
     tableSize = localTableSize * numOfUpdators ;
+    
+    CkPrintf("\nRunning randomAccess on %d processors\n Memory size per core:"FSTR64"Mbytes\n Total Memory:"FSTR64"MBytes\n", CkNumPes(), localTableSize/1024/1024, tableSize/1020/1024);
+
 
     mainProxy = thishandle;
     mainhandle = thishandle;    
     starttime = CmiWallTimer();
 
+#ifdef WORK_ON_ONE_PE
+    generator_array = CProxy_Generator::ckNew(numOfUpdators);
+    updater_array   = CProxy_Updater::ckNew(numOfUpdators);
+#else
     CProxy_PMEMap generatorMap=CProxy_PMEMap::ckNew(0);
     CkArrayOptions opts_generator(numOfUpdators);
     opts_generator.setMap(generatorMap);
-
     generator_array = CProxy_Generator::ckNew(opts_generator);
-    
-    
+   
     CProxy_PMEMap updaterMap=CProxy_PMEMap::ckNew(1);
     CkArrayOptions opts_updater(numOfUpdators);
     opts_updater.setMap(updaterMap);
     updater_array   = CProxy_Updater::ckNew(opts_updater);
-    
+#endif
     generator_array.generateUpdates();
     phase = UPDATE_QUIESCENCE;      //randomAccess phase 
     CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
@@ -85,7 +95,6 @@ void Main::allUpdatesDone(DUMMYMSG *msg)
         gups = 1e-9 * tableSize * 4.0/update_walltime;
         singlegups =  gups/numOfUpdators;
         CkPrintf("\n\nRandom Access update done\n");
-        CkPrintf("Total node number is :%d\n", CkNumNodes());
         CkPrintf( "CPU time used = %.6f seconds\n", update_cputime );
         CkPrintf( "Real time used = %.6f seconds\n", update_walltime);
         CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
@@ -107,7 +116,7 @@ void Main::allUpdatesDone(DUMMYMSG *msg)
 
 void Main::verifyDone(CkReductionMsg *msg) 
 {
-    int GlbnumErrors = *(int*)msg->getData();
+    long int GlbnumErrors = *(int*)msg->getData();
     CkPrintf(  "Verification:  CPU time used = %.6f seconds\n", CmiCpuTimer() - starttime);
     CkPrintf(  "Verification:  Real time used = %.6f seconds\n", CmiWallTimer() - starttime);
     CkPrintf(  "Found "FSTR64"  errors in "FSTR64"  locations (%s).\n",
@@ -155,6 +164,9 @@ void Generator::generateUpdates()
             HPCC_GetUpdates(buckets, remoteData->getBuffer(), tableIndex, peUpdates);
             pendingUpdates -= peUpdates;
             updater_array[tableIndex].updateLocalTable(remoteData);
+#ifdef WORK_ON_ONE_PE
+            CthYield();   
+#endif
         }
     }
 
@@ -194,12 +206,12 @@ void Updater::updateLocalTable(PassData* remotedata)
 
 void Updater::checkErrors()
 {
-    int numErrors = 0;
+    long int numErrors = 0;
     int GlobalStartmyProc = thisIndex * localTableSize  ;
     for (int j=0; j<localTableSize; j++)
         if (HPCC_Table[j] != j + GlobalStartmyProc)
             numErrors++;
-    contribute(sizeof(int), &numErrors, CkReduction::sum_int, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
+    contribute(sizeof(long), &numErrors, CkReduction::sum_long, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
 }
 
-#include "RandomAccess.def.h"
+#include "randomAccess.def.h"
