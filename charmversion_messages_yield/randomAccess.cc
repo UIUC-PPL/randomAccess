@@ -27,7 +27,7 @@ public:
     PMEMap(int off) {
         offset = off;
     }
-    PMEMap(CkMigrateMessage *m){}
+    //PMEMap(CkMigrateMessage *m){}
     int registerArray(CkArrayIndex& numElements,CkArrayID aid) {
         return 0;
     }
@@ -61,7 +61,6 @@ Main::Main(CkArgMsg* args)
 
     mainProxy = thishandle;
     mainhandle = thishandle;    
-    starttime = CmiWallTimer();
 
 #ifdef WORK_ON_ONE_PE
     generator_array = CProxy_Generator::ckNew(numOfUpdators);
@@ -77,11 +76,17 @@ Main::Main(CkArgMsg* args)
     opts_updater.setMap(updaterMap);
     updater_array   = CProxy_Updater::ckNew(opts_updater);
 #endif
+    updater_array.initialize();
+}
+void Main::start(CkReductionMsg *msg)
+{
+    CkPrintf("\nstart RandomAccess\n");
+    delete msg;
     generator_array.generateUpdates();
+    starttime = CmiWallTimer();
     phase = UPDATE_QUIESCENCE;      //randomAccess phase 
     CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
 }
-
 void Main::allUpdatesDone(DUMMYMSG *msg)
 {
     double singlegups;
@@ -89,12 +94,13 @@ void Main::allUpdatesDone(DUMMYMSG *msg)
 
     double update_walltime = CmiWallTimer() - starttime;
     double update_cputime = CmiCpuTimer()-starttime;
-
+    
+    delete msg;
     if(phase == UPDATE_QUIESCENCE)
     {
         gups = 1e-9 * tableSize * 4.0/update_walltime;
         singlegups =  gups/numOfUpdators;
-        CkPrintf("\n\nRandom Access update done\n");
+        CkPrintf("Random Access update done\n");
         CkPrintf( "CPU time used = %.6f seconds\n", update_cputime );
         CkPrintf( "Real time used = %.6f seconds\n", update_walltime);
         CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
@@ -122,6 +128,7 @@ void Main::verifyDone(CkReductionMsg *msg)
     CkPrintf(  "Found "FSTR64"  errors in "FSTR64"  locations (%s).\n",
         GlbnumErrors, tableSize, (GlbnumErrors <= 0.01*tableSize) ?
         "passed" : "failed");
+    delete msg;
     CkExit();
 }
 
@@ -181,13 +188,17 @@ void Generator::generateUpdates()
     }
 }
 
-Updater::Updater(){
+Updater::Updater(){}
 
+void Updater::initialize(){
+
+    int numErrors = 0;
     int GlobalStartmyProc = thisIndex * localTableSize  ;
     HPCC_Table = (u64Int*)malloc(sizeof(u64Int) * localTableSize);
     /* Initialize Table */
     for(int i=0; i<localTableSize; i++)
         HPCC_Table[i] = i + GlobalStartmyProc;
+    contribute(sizeof(int), &numErrors, CkReduction::sum_int, CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
 }
 /* For better performance, message will be better than method parameters */
 void Updater::updateLocalTable(PassData* remotedata)

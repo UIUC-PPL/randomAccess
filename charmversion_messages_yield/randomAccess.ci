@@ -20,8 +20,9 @@ mainmodule randomAccess {
 
     mainchare Main {
         entry Main(CkArgMsg*);
-        entry void verifyDone(CkReductionMsg *msg); 
-        entry void allUpdatesDone(DUMMYMSG *msg);
+        entry void verifyDone(CkReductionMsg*); 
+        entry void allUpdatesDone(DUMMYMSG*);
+        entry void start(CkReductionMsg*);
     };
     
     array [1D] Generator {
@@ -31,7 +32,8 @@ mainmodule randomAccess {
 
     array [1D] Updater {
         entry Updater();
+        entry void initialize();
         entry void updateLocalTable(PassData* m); 
-       entry  void checkErrors();
+        entry void checkErrors();
     };
 };

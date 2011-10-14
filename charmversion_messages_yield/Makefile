@@ -1,4 +1,4 @@
-CHARMC = /expand/home/jessie/PPL/git/charm/net-linux-x86_64/bin/charmc 
+CHARMC = /expand/home/jessie/PPL/git/charm/mpi-linux-x86_64/bin/charmc 
 BINARY = random_access projections
 
 SRCFILES = $(wildcard *.cc)
