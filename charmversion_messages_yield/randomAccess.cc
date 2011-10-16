@@ -18,8 +18,8 @@ u64Int localTableSize;
 u64Int tableSize;
 int numOfUpdators;
 
-/* node-level share variable */
-
+/* How to map objects to processors 
+ * By just changing this mapping, we can control how to implement the updater*/
 class PMEMap : public CkArrayMap
 {
     int offset;
@@ -38,7 +38,11 @@ public:
         return penum;
     }
 };
-
+/*  Two modes
+ *  (1)  WORK_ON_ONE_PE is defined: each processor is responsible both for generating numbers and updating table
+ *  (2) WORK_ON_ONE_PE is not defined: each processor is dedicated to either generating numbers or updating table
+ *      In this mode, the ratio of generators and updators can also be adjusted by using runtime parameter
+ */ 
 
 Main::Main(CkArgMsg* args) 
 {
@@ -198,7 +202,8 @@ void Updater::initialize(){
     /* Initialize Table */
     for(int i=0; i<localTableSize; i++)
         HPCC_Table[i] = i + GlobalStartmyProc;
-    contribute(sizeof(int), &numErrors, CkReduction::sum_int, CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
+    contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
+    //contribute(sizeof(int), &numErrors, CkReduction::sum_int, CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
 }
 /* For better performance, message will be better than method parameters */
 void Updater::updateLocalTable(PassData* remotedata)
