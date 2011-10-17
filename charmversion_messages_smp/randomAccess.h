@@ -9,6 +9,7 @@ public:
     Main(CkArgMsg*);
     void verifyDone(CkReductionMsg *msg);
     void allUpdatesDone(DUMMYMSG *msg);
+    void start(CkReductionMsg *msg);
 private:
     CkChareID mainhandle;
     double starttime;
@@ -49,6 +50,7 @@ class Updater : public CBase_Updater {
 public:
     Updater();
     Updater(CkMigrateMessage* m) {}
+    void initialize();
     void updateLocalTable(PassData* m); 
     void checkErrors();
 };
