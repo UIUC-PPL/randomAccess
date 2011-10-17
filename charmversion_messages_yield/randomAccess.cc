@@ -143,7 +143,7 @@ Generator::Generator()
 void Generator::generateUpdates()
 {
     u64Int updatesNum;
-    u64Int ran;
+    u64Int ran, globalOffset;
     int peUpdates;
     int tableIndex;
     Bucket_Ptr buckets;
@@ -163,7 +163,9 @@ void Generator::generateUpdates()
         if (pendingUpdates < MAX_TOTAL_PENDING_UPDATES)
         {
             ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
-            tableIndex = (ran & (tableSize-1))/localTableSize;
+            globalOffset = ran & (tableSize-1);
+            //tableIndex = globalOffset/localTableSize; if localsize is not power 2
+            tableIndex = globalOffset >>  logLocalTableSize;
             HPCC_InsertUpdate(ran, tableIndex, buckets);
             pendingUpdates++;
             i++;
