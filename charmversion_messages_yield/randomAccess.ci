@@ -1,8 +1,7 @@
 mainmodule randomAccess {
     readonly CProxy_Main mainProxy;
     readonly CProxy_Updater updater_array;
-    readonly  CProxy_Generator generator_array;
-    readonly int numOfUpdators;
+    readonly int numOfUpdaters;
     readonly int logLocalTableSize;
     readonly u64Int localTableSize;
     readonly u64Int tableSize;
@@ -25,13 +24,9 @@ mainmodule randomAccess {
         entry void start(CkReductionMsg*);
     };
     
-    array [1D] Generator {
-        entry Generator();
-        entry [threaded] void  generateUpdates();
-    };
-
     array [1D] Updater {
         entry Updater();
+        entry [threaded] void  generateUpdates();
         entry void initialize();
         entry void updateLocalTable(PassData* m); 
         entry void checkErrors();

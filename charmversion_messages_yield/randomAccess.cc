@@ -7,16 +7,14 @@
 #define  UPDATE_QUIESCENCE  0
 #define  VERIFY_QUIESCENCE 1
 
-#define  WORK_ON_ONE_PE    1
 /* Readonly variables */
 CProxy_Main mainProxy;
-CProxy_Generator generator_array;
 CProxy_Updater updater_array;
 
 int logLocalTableSize;
 u64Int localTableSize;
 u64Int tableSize;
-int numOfUpdators;
+int numOfUpdaters;
 
 /* How to map objects to processors 
  * By just changing this mapping, we can control how to implement the updater*/
@@ -41,7 +39,7 @@ public:
 /*  Two modes
  *  (1)  WORK_ON_ONE_PE is defined: each processor is responsible both for generating numbers and updating table
  *  (2) WORK_ON_ONE_PE is not defined: each processor is dedicated to either generating numbers or updating table
- *      In this mode, the ratio of generators and updators can also be adjusted by using runtime parameter
+ *      In this mode, the ratio of generators and updaters can also be adjusted by using runtime parameter
  */ 
 
 Main::Main(CkArgMsg* args) 
@@ -51,14 +49,10 @@ Main::Main(CkArgMsg* args)
     logLocalTableSize = atoi(args->argv[1]);
     delete args;
 
-#ifdef WORK_ON_ONE_PE 
-    numOfUpdators = CkNumPes();
-#else
-    numOfUpdators = CkNumPes()/2;
-#endif
+    numOfUpdaters = CkNumPes();
 
     localTableSize = 1l << logLocalTableSize;
-    tableSize = localTableSize * numOfUpdators ;
+    tableSize = localTableSize * numOfUpdaters ;
     
     CkPrintf("\nRunning randomAccess on %d processors\n Memory size per core:"FSTR64"Mbytes\n Total Memory:"FSTR64"MBytes\n", CkNumPes(), localTableSize/1024/1024, tableSize/1020/1024);
 
@@ -66,27 +60,14 @@ Main::Main(CkArgMsg* args)
     mainProxy = thishandle;
     mainhandle = thishandle;    
 
-#ifdef WORK_ON_ONE_PE
-    generator_array = CProxy_Generator::ckNew(numOfUpdators);
-    updater_array   = CProxy_Updater::ckNew(numOfUpdators);
-#else
-    CProxy_PMEMap generatorMap=CProxy_PMEMap::ckNew(0);
-    CkArrayOptions opts_generator(numOfUpdators);
-    opts_generator.setMap(generatorMap);
-    generator_array = CProxy_Generator::ckNew(opts_generator);
-   
-    CProxy_PMEMap updaterMap=CProxy_PMEMap::ckNew(1);
-    CkArrayOptions opts_updater(numOfUpdators);
-    opts_updater.setMap(updaterMap);
-    updater_array   = CProxy_Updater::ckNew(opts_updater);
-#endif
+    updater_array   = CProxy_Updater::ckNew(numOfUpdaters);
     updater_array.initialize();
 }
 void Main::start(CkReductionMsg *msg)
 {
     CkPrintf("\nstart RandomAccess\n");
     delete msg;
-    generator_array.generateUpdates();
+    updater_array.generateUpdates();
     starttime = CmiWallTimer();
     phase = UPDATE_QUIESCENCE;      //randomAccess phase 
     CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
@@ -103,7 +84,7 @@ void Main::allUpdatesDone(DUMMYMSG *msg)
     if(phase == UPDATE_QUIESCENCE)
     {
         gups = 1e-9 * tableSize * 4.0/update_walltime;
-        singlegups =  gups/numOfUpdators;
+        singlegups =  gups/numOfUpdaters;
         CkPrintf("Random Access update done\n");
         CkPrintf( "CPU time used = %.6f seconds\n", update_cputime );
         CkPrintf( "Real time used = %.6f seconds\n", update_walltime);
@@ -114,7 +95,7 @@ void Main::allUpdatesDone(DUMMYMSG *msg)
 
         starttime = CmiWallTimer();
         phase = VERIFY_QUIESCENCE;      //verify
-        generator_array.generateUpdates();
+        updater_array.generateUpdates();
         CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
     }else if(phase == VERIFY_QUIESCENCE)
     {
@@ -136,38 +117,41 @@ void Main::verifyDone(CkReductionMsg *msg)
     CkExit();
 }
 
-Generator::Generator() 
-{ 
-}
-
-void Generator::generateUpdates()
+void Updater::generateUpdates()
 {
     u64Int updatesNum;
-    u64Int ran, globalOffset;
+    u64Int ran, globalOffset, localOffset;
     int peUpdates;
     int tableIndex;
     Bucket_Ptr buckets;
     int pendingUpdates;
-    int Updatesnum;
+    int updatesnum;
     PassData *remoteData;
 
-    int GlobalStartmyProc = thisIndex * localTableSize  ;
-    u64Int randseed = 4 * GlobalStartmyProc; 
+    int globalStartmyProc = thisIndex * localTableSize  ;
+    u64Int randseed = 4 * globalStartmyProc; 
     ran= nth_random(randseed);
     
     pendingUpdates = 0;
     updatesNum = 4 * localTableSize;
-    buckets = HPCC_InitBuckets(numOfUpdators, MAX_TOTAL_PENDING_UPDATES);
+    buckets = HPCC_InitBuckets(numOfUpdaters, MAX_TOTAL_PENDING_UPDATES);
     for(int i=0; i<updatesNum;)
     {
         if (pendingUpdates < MAX_TOTAL_PENDING_UPDATES)
         {
             ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
-            globalOffset = ran & (tableSize-1);
+            //globalOffset = ran & (tableSize-1);
             //tableIndex = globalOffset/localTableSize; if localsize is not power 2
-            tableIndex = globalOffset >>  logLocalTableSize;
-            HPCC_InsertUpdate(ran, tableIndex, buckets);
-            pendingUpdates++;
+            tableIndex = (ran >>  logLocalTableSize)&(numOfUpdaters-1);
+            if(tableIndex == thisIndex)
+            {
+                localOffset = (ran&(tableSize-1))-globalStartmyProc;
+                HPCC_Table[localOffset] ^= ran;
+            }
+            else {
+                HPCC_InsertUpdate(ran, tableIndex, buckets);
+                pendingUpdates++;
+            }
             i++;
         }else
         {
@@ -175,10 +159,9 @@ void Generator::generateUpdates()
             remoteData = new (peUpdates, 0) PassData(peUpdates, thisIndex);
             HPCC_GetUpdates(buckets, remoteData->getBuffer(), tableIndex, peUpdates);
             pendingUpdates -= peUpdates;
+            //sending messages out and receive message to apply the update table
             updater_array[tableIndex].updateLocalTable(remoteData);
-#ifdef WORK_ON_ONE_PE
             CthYield();   
-#endif
         }
     }
 

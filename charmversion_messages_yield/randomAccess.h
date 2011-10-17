@@ -38,18 +38,12 @@ public:
     }
 };
 
-class Generator: public CBase_Generator{
-public:
-    Generator();
-    Generator(CkMigrateMessage* m) {}
-    void generateUpdates();
-};
-
 class Updater : public CBase_Updater {
     u64Int *HPCC_Table;
 public:
     Updater();
     Updater(CkMigrateMessage* m) {}
+    void generateUpdates();
     void initialize();
     void updateLocalTable(PassData* m); 
     void checkErrors();
