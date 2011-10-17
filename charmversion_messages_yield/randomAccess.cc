@@ -158,13 +158,12 @@ void Generator::generateUpdates()
     pendingUpdates = 0;
     updatesNum = 4 * localTableSize;
     buckets = HPCC_InitBuckets(numOfUpdators, MAX_TOTAL_PENDING_UPDATES);
-
     for(int i=0; i<updatesNum;)
     {
         if (pendingUpdates < MAX_TOTAL_PENDING_UPDATES)
         {
             ran = (ran << 1) ^ ((s64Int) ran < ZERO64B ? POLY : ZERO64B);
-            tableIndex = (ran >> logLocalTableSize) & (numOfUpdators - 1);
+            tableIndex = (ran & (tableSize-1))/localTableSize;
             HPCC_InsertUpdate(ran, tableIndex, buckets);
             pendingUpdates++;
             i++;
