@@ -1,32 +1,34 @@
-#include "hpcc.h"
 #include "randomAccess.decl.h"
-#include "buckets.h"
-#include "randomAccess.h"
-#include "util.h"
 
+#define ZERO64B 0L
+#define POLY 0x0000000000000007UL
+#define PERIOD 1317624576693539401L
 #define  UPDATE_QUIESCENCE  0
 #define  VERIFY_QUIESCENCE 1
 
 /* Readonly variables */
 CProxy_Main mainProxy;
-CProxy_Generator generator_array;
 CProxy_Updater updater_array;
 
 int logLocalTableSize;
-u64Int localTableSize;
-u64Int tableSize;
-int numOfUpdators;
+long localTableSize;
+long tableSize;
+int numOfUpdaters;
+
+long HPCC_starts(long n);
+class DUMMYMSG : public CMessage_DUMMYMSG {
+};
 
 /* How to map objects to processors 
- * By just changing this mapping, we can control how to implement the updater*/
+* By just changing this mapping, we can control how to implement the updater*/
 class PMEMap : public CkArrayMap
 {
-    int offset;
+int offset;
 public:
-    PMEMap(int off) {
-        offset = off;
-    }
-    //PMEMap(CkMigrateMessage *m){}
+PMEMap(int off) {
+offset = off;
+}
+//PMEMap(CkMigrateMessage *m){}
     int registerArray(CkArrayIndex& numElements,CkArrayID aid) {
         return 0;
     }
@@ -214,5 +216,40 @@ void Updater::checkErrors()
             numErrors++;
     contribute(sizeof(long), &numErrors, CkReduction::sum_long, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
 }
+
+/** random generator */
+long HPCC_starts(long n)
+{
+    int i, j;
+    long m2[64];
+    long temp, ran;
+    while (n < 0) n += PERIOD;
+    while (n > PERIOD) n -= PERIOD;
+    if (n == 0) return 0x1;
+    temp = 0x1;
+    for (i=0; i<64; i++) {
+        m2[i] = temp;
+        temp = (temp << 1) ^ ((long) temp < 0 ? POLY : 0);
+        temp = (temp << 1) ^ ((long) temp < 0 ? POLY : 0);
+    }
+    for (i=62; i>=0; i--)
+        if ((n >> i) & 1)
+            break;
+
+    ran = 0x2;
+    while (i > 0) {
+        temp = 0;
+        for (j=0; j<64; j++)
+            if ((ran >> j) & 1)
+                temp ^= m2[j];
+        ran = temp;
+        i -= 1;
+        if ((n >> i) & 1)
+            ran = (ran << 1) ^ ((long) ran < 0 ? POLY : 0);
+    }
+    return ran;
+
+}
+
 
 #include "randomAccess.def.h"
