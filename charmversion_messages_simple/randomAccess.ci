@@ -3,8 +3,8 @@ mainmodule randomAccess {
     readonly CProxy_Updater updater_array;
     readonly int numOfUpdaters;
     readonly int logLocalTableSize;
-    readonly u64Int localTableSize;
-    readonly u64Int tableSize;
+    readonly long localTableSize;
+    readonly long tableSize;
 
     
     message DUMMYMSG;
@@ -20,7 +20,7 @@ mainmodule randomAccess {
         entry Updater();
         entry void initialize();
         entry [threaded] void  generateUpdates();
-        entry void updateLocalTable(u64Int); 
+        entry void updateLocalTable(long); 
         entry void checkErrors();
     };
 };
