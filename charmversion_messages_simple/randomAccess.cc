@@ -1,8 +1,15 @@
 #include "randomAccess.decl.h"
 
+#ifdef LONG_IS_64BITS
 #define ZERO64B 0L
 #define POLY 0x0000000000000007UL
 #define PERIOD 1317624576693539401L
+#else
+#define ZERO64B 0LL
+#define POLY 0x0000000000000007ULL
+#define PERIOD 1317624576693539401LL
+#endif
+
 #define  UPDATE_QUIESCENCE  0
 #define  VERIFY_QUIESCENCE 1
 
@@ -11,11 +18,11 @@ CProxy_Main mainProxy;
 CProxy_Updater updater_array;
 
 int logLocalTableSize;
-long localTableSize;
-long tableSize;
+CmiInt8 localTableSize;
+CmiInt8 tableSize;
 int numOfUpdaters;
 
-long HPCC_starts(long n);
+CmiInt8 HPCC_starts(CmiInt8 n);
 class DUMMYMSG : public CMessage_DUMMYMSG {
 };
 
@@ -28,7 +35,7 @@ private:
 public:
     Main(CkArgMsg* args) 
     {
-        //CkPrintf("Usage: RandomAccess logLocaltablesize\n");
+        CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
 
         logLocalTableSize = atoi(args->argv[1]);
         delete args;
@@ -36,9 +43,9 @@ public:
         numOfUpdaters = CkNumPes();
         localTableSize = 1l << logLocalTableSize;
         tableSize = localTableSize * numOfUpdaters ;
-        CkPrintf("Main table size   = 2^%d * %d = %ld bytes\n", logLocalTableSize, CkNumPes(), tableSize);
+        CkPrintf("Main table size   = 2^%d * %d = %lld bytes\n", logLocalTableSize, CkNumPes(), tableSize);
         CkPrintf("Number of processes = %d\n", CkNumPes());
-        CkPrintf("Number of updates = %ld\n", (4*tableSize));
+        CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
         mainhandle = thishandle;  
         updater_array   = CProxy_Updater::ckNew(numOfUpdaters);
@@ -84,8 +91,8 @@ public:
 
     void verifyDone(CkReductionMsg *msg) 
     {
-        long GlbnumErrors = *(long*)msg->getData();
-        CkPrintf(  "Found %ld errors in %ld locations (%s).\n", GlbnumErrors, 
+        CmiInt8 GlbnumErrors = *(CmiInt8*)msg->getData();
+        CkPrintf(  "Found %lld errors in %lld locations (%s).\n", GlbnumErrors, 
             tableSize, (GlbnumErrors <= 0.01*tableSize) ? "passed" : "failed");
         delete msg;
         CkExit();
@@ -94,29 +101,29 @@ public:
 
 class Updater : public CBase_Updater {
 private:
-    long *HPCC_Table;
-    long globalStartmyProc;
+    CmiInt8 *HPCC_Table;
+    CmiInt8 globalStartmyProc;
 public:
     Updater() {}
     Updater(CkMigrateMessage* m) {}
     void initialize(){
         globalStartmyProc = thisIndex * localTableSize  ;
-        HPCC_Table = (long*)malloc(sizeof(long) * localTableSize);
-        for(long i=0; i<localTableSize; i++)
+        HPCC_Table = (CmiInt8*)malloc(sizeof(CmiInt8) * localTableSize);
+        for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
         contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
     }
 
     void generateUpdates()
     {
-        long updatesNum;
-        long ran, localOffset;
+        CmiInt8 updatesNum;
+        CmiInt8 ran, localOffset;
         int tableIndex;
         ran= HPCC_starts(4* globalStartmyProc);
         updatesNum = 4 * localTableSize;
-        for(long i=0; i<updatesNum;i++)
+        for(CmiInt8 i=0; i<updatesNum;i++)
         {
-            ran = (ran << 1) ^ ((long) ran < ZERO64B ? POLY : ZERO64B);
+            ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
             tableIndex = (ran >>  logLocalTableSize)&(numOfUpdaters-1);
             if(tableIndex == thisIndex)
             {
@@ -132,37 +139,37 @@ public:
         }
     }
 
-    void updateLocalTable( long ran)
+    void updateLocalTable( CmiInt8 ran)
     {
-        long localOffset;
+        CmiInt8 localOffset;
         localOffset = ran & (localTableSize - 1);
         HPCC_Table[localOffset] ^= ran;
     }
 
     void checkErrors()
     {
-        long numErrors = 0;
-        for (long j=0; j<localTableSize; j++)
+        CmiInt8 numErrors = 0;
+        for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
                 numErrors++;
-        contribute(sizeof(long), &numErrors, CkReduction::sum_long, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
+        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
     }
 };
 
 /** random generator */
-long HPCC_starts(long n)
+CmiInt8 HPCC_starts(CmiInt8 n)
 {
     int i, j;
-    long m2[64];
-    long temp, ran;
+    CmiInt8 m2[64];
+    CmiInt8 temp, ran;
     while (n < 0) n += PERIOD;
     while (n > PERIOD) n -= PERIOD;
     if (n == 0) return 0x1;
     temp = 0x1;
     for (i=0; i<64; i++) {
         m2[i] = temp;
-        temp = (temp << 1) ^ ((long) temp < 0 ? POLY : 0);
-        temp = (temp << 1) ^ ((long) temp < 0 ? POLY : 0);
+        temp = (temp << 1) ^ ((CmiInt8) temp < 0 ? POLY : 0);
+        temp = (temp << 1) ^ ((CmiInt8) temp < 0 ? POLY : 0);
     }
     for (i=62; i>=0; i--)
         if ((n >> i) & 1)
@@ -177,7 +184,7 @@ long HPCC_starts(long n)
         ran = temp;
         i -= 1;
         if ((n >> i) & 1)
-            ran = (ran << 1) ^ ((long) ran < 0 ? POLY : 0);
+            ran = (ran << 1) ^ ((CmiInt8) ran < 0 ? POLY : 0);
     }
     return ran;
 
