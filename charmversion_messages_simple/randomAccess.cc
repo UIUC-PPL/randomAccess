@@ -34,17 +34,13 @@ public:
         delete args;
 
         numOfUpdaters = CkNumPes();
-
         localTableSize = 1l << logLocalTableSize;
         tableSize = localTableSize * numOfUpdaters ;
-
         CkPrintf("Main table size   = 2^%d * %d = %ld bytes\n", logLocalTableSize, CkNumPes(), tableSize);
         CkPrintf("Number of processes = %d\n", CkNumPes());
         CkPrintf("Number of updates = %ld\n", (4*tableSize));
-        
         mainProxy = thishandle;
         mainhandle = thishandle;  
-
         updater_array   = CProxy_Updater::ckNew(numOfUpdaters);
         updater_array.initialize();
     }
@@ -75,7 +71,6 @@ public:
             CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
             CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
             CkPrintf("\n\nStart verifying...\n");
-            
             starttime = CkWallTimer();
             phase = VERIFY_QUIESCENCE;      //verify
             updater_array.generateUpdates();
@@ -83,18 +78,15 @@ public:
         }else if(phase == VERIFY_QUIESCENCE)
         {
             //verify done
-            //CkPrintf("verify done\n");
             updater_array.checkErrors(); 
         }
     }
 
     void verifyDone(CkReductionMsg *msg) 
     {
-        long int GlbnumErrors = *(int*)msg->getData();
-        //CkPrintf(  "Verification:  CPU time used = %.6f seconds\n", CkWallTimer() - starttime);
-        CkPrintf(  "Found %ld errors in %ld locations (%s).\n",
-            GlbnumErrors, tableSize, (GlbnumErrors <= 0.01*tableSize) ?
-            "passed" : "failed");
+        long GlbnumErrors = *(long*)msg->getData();
+        CkPrintf(  "Found %ld errors in %ld locations (%s).\n", GlbnumErrors, 
+            tableSize, (GlbnumErrors <= 0.01*tableSize) ? "passed" : "failed");
         delete msg;
         CkExit();
     }
@@ -103,32 +95,26 @@ public:
 class Updater : public CBase_Updater {
 private:
     long *HPCC_Table;
+    long globalStartmyProc;
 public:
     Updater() {}
     Updater(CkMigrateMessage* m) {}
     void initialize(){
-
-        int numErrors = 0;
-        int GlobalStartmyProc = thisIndex * localTableSize  ;
+        globalStartmyProc = thisIndex * localTableSize  ;
         HPCC_Table = (long*)malloc(sizeof(long) * localTableSize);
-        /* Initialize Table */
-        for(int i=0; i<localTableSize; i++)
-            HPCC_Table[i] = i + GlobalStartmyProc;
+        for(long i=0; i<localTableSize; i++)
+            HPCC_Table[i] = i + globalStartmyProc;
         contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
     }
 
     void generateUpdates()
     {
         long updatesNum;
-        long ran, globalOffset, localOffset;
+        long ran, localOffset;
         int tableIndex;
-        int globalStartmyProc;
-        
-        globalStartmyProc = thisIndex * localTableSize  ;
         ran= HPCC_starts(4* globalStartmyProc);
-
         updatesNum = 4 * localTableSize;
-        for(int i=0; i<updatesNum;i++)
+        for(long i=0; i<updatesNum;i++)
         {
             ran = (ran << 1) ^ ((long) ran < ZERO64B ? POLY : ZERO64B);
             tableIndex = (ran >>  logLocalTableSize)&(numOfUpdaters-1);
@@ -146,19 +132,18 @@ public:
         }
     }
 
-    void updateLocalTable( long inmsg)
+    void updateLocalTable( long ran)
     {
         long localOffset;
-        localOffset = inmsg & (localTableSize - 1);
-        HPCC_Table[localOffset] ^= inmsg;
+        localOffset = ran & (localTableSize - 1);
+        HPCC_Table[localOffset] ^= ran;
     }
 
     void checkErrors()
     {
-        long int numErrors = 0;
-        int GlobalStartmyProc = thisIndex * localTableSize  ;
-        for (int j=0; j<localTableSize; j++)
-            if (HPCC_Table[j] != j + GlobalStartmyProc)
+        long numErrors = 0;
+        for (long j=0; j<localTableSize; j++)
+            if (HPCC_Table[j] != j + globalStartmyProc)
                 numErrors++;
         contribute(sizeof(long), &numErrors, CkReduction::sum_long, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
     }

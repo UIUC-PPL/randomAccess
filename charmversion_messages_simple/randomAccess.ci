@@ -5,10 +5,8 @@ mainmodule randomAccess {
     readonly int logLocalTableSize;
     readonly long localTableSize;
     readonly long tableSize;
-
     
     message DUMMYMSG;
-
     mainchare Main {
         entry Main(CkArgMsg*);
         entry void verifyDone(CkReductionMsg*); 
