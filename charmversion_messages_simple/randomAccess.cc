@@ -35,15 +35,13 @@ private:
 public:
     Main(CkArgMsg* args) 
     {
-        CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
-
+        //CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
         logLocalTableSize = atoi(args->argv[1]);
         delete args;
-
         numOfUpdaters = CkNumPes();
         localTableSize = 1l << logLocalTableSize;
         tableSize = localTableSize * numOfUpdaters ;
-        CkPrintf("Main table size   = 2^%d * %d = %lld bytes\n", logLocalTableSize, CkNumPes(), tableSize);
+        CkPrintf("Main table size   = 2^%d * %d = %lld words\n", logLocalTableSize, CkNumPes(), tableSize);
         CkPrintf("Number of processes = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
@@ -136,6 +134,8 @@ public:
                 if(i%1024 == 0)
                     CthYield();   
             }
+            if(i%(1024*1024*64) == 0)
+                CkPrintf("[%d] iter=%d\n", CkMyPe(), i/(1024*1024));
         }
     }
 
