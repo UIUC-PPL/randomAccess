@@ -1,0 +1,16 @@
+mainmodule MeshStreamerTest {
+
+  extern module MeshStreamer;
+
+  readonly CProxy_Senders senderGroup;
+
+  mainchare Main {
+    entry Main(CkArgMsg *m);
+  };
+
+  group Senders : MeshStreamerClient {
+    entry Senders();
+    //    entry void receiveCombinedData(LocalMessage *msg);
+  };
+
+};

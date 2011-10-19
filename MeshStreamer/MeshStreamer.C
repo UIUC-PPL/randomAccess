@@ -4,14 +4,16 @@ MeshStreamerClient::MeshStreamerClient() {
 
 }
 
-void MeshStreamerClient::receive(LocalMessage *msg) {
 
-  // do something with received data here
+void MeshStreamerClient::receiveCombinedData(LocalMessage *msg) {
+
+  delete msg;
 }
 
+
 MeshStreamer::MeshStreamer(int payloadSize, int bucketSize, int numRows, 
-                           int numColumns, int numPlanes, int numNodes, 
-                           CProxy_MeshStreamerClient clientProxy, int numPesPerNode,
+                           int numColumns, int numPlanes, int numPesPerNode,
+                           const CProxy_MeshStreamerClient &clientProxy, 
                            int flushPeriodInMs) {
    
   payloadSize_ = payloadSize; 
@@ -19,7 +21,7 @@ MeshStreamer::MeshStreamer(int payloadSize, int bucketSize, int numRows,
   numRows_ = numRows; 
   numColumns_ = numColumns;
   numPlanes_ = numPlanes; 
-  numNodes_ = numNodes; 
+  numNodes_ = CkNumNodes(); 
   numPesPerNode_ = numPesPerNode;
   clientProxy_ = clientProxy; 
   flushPeriod_ = flushPeriodInMs;
@@ -117,7 +119,7 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
   MeshStreamerMessage *destinationBucket = messageBuffers[bucketIndex];
 
   // copy data into message and send if buffer is full
-  if (destinationBucket.addData(data, destinationPe) == bucketSize_) {
+  if (destinationBucket->addData(data, destinationPe) == bucketSize_) {
 
     int destinationIndex;
     switch (msgType) {
@@ -129,7 +131,7 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
       break;
     ColumnMessage:
       destinationIndex = myNodeIndex_ + (columnIndex - myColumnIndex_);
-      thisProxy[destinationIndex].receiveAggreateData(destinationBucket);
+      thisProxy[destinationIndex].receiveAggregateData(destinationBucket);
       break;
     PersonalizedMessage:
       destinationIndex = myNodeIndex_ + (rowIndex - myRowIndex_) * numColumns_;
@@ -244,8 +246,8 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
 
   }
 
-  for (int i = 0; i < numPesPerNode_; i++) {   
-    clientProxy_[i].receive(localMsgs[i]);
+  for (int i = 0; i < numPesPerNode_; i++) {       
+    clientProxy_[myNodeIndex_ * numPesPerNode_ + i].receiveCombinedData(localMsgs[i]);
   }
 
   delete msg; 

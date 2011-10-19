@@ -5,6 +5,24 @@
 
 enum MeshStreamerMessageType {PlaneMessage, ColumnMessage, PersonalizedMessage};
 
+class LocalMessage : public CMessage_LocalMessage {
+ public:
+  int numElements; 
+  int fragmentSize; 
+  char *data; 
+
+  LocalMessage(int fragmentSizeInBytes) {
+    numElements = 0; 
+    fragmentSize = fragmentSizeInBytes; 
+  }
+
+  int addData(void *payload) {
+    memcpy(&data[numElements * fragmentSize], payload, fragmentSize);
+    return ++numElements; 
+  }  
+
+};
+
 class MeshStreamerMessage : public CMessage_MeshStreamerMessage {
  public:
   int numElements;
@@ -28,21 +46,10 @@ class MeshStreamerMessage : public CMessage_MeshStreamerMessage {
   }
 };
 
-class LocalMessage : public CMessage_LocalMessage {
+class MeshStreamerClient : public CBase_MeshStreamerClient {
  public:
-  int numElements; 
-  int fragmentSize; 
-  char *data; 
-
-  LocalMessage(int fragmentSizeInBytes) {
-    numElements = 0; 
-    fragmentSize = fragmentSizeInBytes; 
-  }
-
-  int addData(void *payload) {
-    memcpy(&data[numElements * fragmentSize], payload, fragmentSize);
-    return ++numElements; 
-  }  
+  MeshStreamerClient();
+  virtual void receiveCombinedData(LocalMessage *msg);
 
 };
 
@@ -82,8 +89,8 @@ class MeshStreamer : public CBase_MeshStreamer {
  public:
 
   MeshStreamer(int payloadSize, int bucketSize, int numRows, 
-	       int numColumns, int numPlanes, int numNodes, 
-	       CProxy_MeshStreamerClient clientProxy, int numPesPerNode,
+	       int numColumns, int numPlanes, int numPesPerNode,
+	       const CProxy_MeshStreamerClient &clientProxy, 
 	       int flushPeriodInMs);
 
   ~MeshStreamer();
@@ -95,13 +102,6 @@ class MeshStreamer : public CBase_MeshStreamer {
   void flush();
 
   void registerPeriodicFlush();
-
-};
-
-class MeshStreamerClient : public CBase_MeshStreamerClient {
-
-  MeshStreamerClient();
-  void receive(LocalMessage *msg);
 
 };
 
