@@ -134,8 +134,6 @@ public:
                 if(i%1024 == 0)
                     CthYield();   
             }
-            if(i%(1024*1024*64) == 0)
-                CkPrintf("[%d] iter=%d\n", CkMyPe(), i/(1024*1024));
         }
     }
 
