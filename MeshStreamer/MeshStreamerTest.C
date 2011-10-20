@@ -7,8 +7,8 @@ CProxy_MeshStreamer aggregator;
 
 #define PAYLOAD_SIZE 4
 #define BUCKET_SIZE 2
-#define NUM_ROWS 1
-#define NUM_COLUMNS 2
+#define NUM_ROWS 2
+#define NUM_COLUMNS 1
 #define NUM_PLANES 1
 #define NUM_PES_PER_NODE 2
 #define FLUSH_PERIOD_IN_MS 10
@@ -38,7 +38,7 @@ public:
   }
   
   void receiveCombinedData(LocalMessage *msg) {
-    CkPrintf("[%d] receiving message for %d \n", CkMyPe()), ((int *) msg->data)[0];
+    CkPrintf("[%d] receiving message for %d \n", CkMyPe(), ((int *) msg->data)[0]);
     delete msg; 
   }
 
@@ -54,10 +54,12 @@ public:
       msg->addData((void *) &destinationPe, destinationPe);
       aggregator[CkMyPe()].insertData(msg);       
       msg = NULL;
+
       destinationPe = 3; 
       msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
       msg->addData((void *) &destinationPe, destinationPe);
       aggregator[CkMyPe()].insertData(msg);  
+      msg = NULL;
 
     }
   }

@@ -238,7 +238,7 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   // sort fragments into messages for each core on this node
 
   LocalMessage *localMsgs[numPesPerNode_];
-  int dataSize = bucketSize_ * payloadSize_;      
+  int dataSize = bucketSize_ * payloadSize_;
 
   for (int i = 0; i < numPesPerNode_; i++) {
     localMsgs[i] = new (bucketSize_, dataSize) LocalMessage(payloadSize_);
