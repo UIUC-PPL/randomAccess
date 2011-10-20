@@ -22,8 +22,10 @@ module MeshStreamer {
 		       const CProxy_MeshStreamerClient &clientProxy, 
 		       int flushPeriodInMs);   
 
-    entry void receiveAggregateData(MeshStreamerMessage *msg);
-    entry void receivePersonalizedData(MeshStreamerMessage *msg);
+
+    entry [exclusive] void insertData(MeshStreamerMessage *msg);
+    entry [exclusive] void receiveAggregateData(MeshStreamerMessage *msg);
+    entry [exclusive] void receivePersonalizedData(MeshStreamerMessage *msg);
   };
 
 };

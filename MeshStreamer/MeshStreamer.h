@@ -42,7 +42,7 @@ class MeshStreamerMessage : public CMessage_MeshStreamerMessage {
   }
 
   void *getFragment(int index) {
-    return (void *) (data[index * fragmentSize]);  
+    return (void *) (&data[index * fragmentSize]);  
   }
 };
 
@@ -95,8 +95,7 @@ class MeshStreamer : public CBase_MeshStreamer {
 
   ~MeshStreamer();
 
-  void insertData(void *data, int destinationPe); 
-
+  void insertData(MeshStreamerMessage *msg); 
   void receiveAggregateData(MeshStreamerMessage *msg);
   void receivePersonalizedData(MeshStreamerMessage *msg);
   void flush();

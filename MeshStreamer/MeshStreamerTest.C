@@ -5,11 +5,11 @@ CProxy_Senders senderGroup;
 CProxy_MeshStreamer aggregator; 
 
 
-#define PAYLOAD_SIZE 16 
-#define BUCKET_SIZE 4
-#define NUM_ROWS 2
-#define NUM_COLUMNS 2
-#define NUM_PLANES 2
+#define PAYLOAD_SIZE 8
+#define BUCKET_SIZE 1
+#define NUM_ROWS 1
+#define NUM_COLUMNS 1
+#define NUM_PLANES 1
 #define NUM_PES_PER_NODE 2
 #define FLUSH_PERIOD_IN_MS 10
 
@@ -26,7 +26,7 @@ public:
                                  static_cast<CProxy_MeshStreamerClient>(senderGroup),  
                                  FLUSH_PERIOD_IN_MS);
 
-    CkExit();
+    senderGroup[0].runTest();
   }
 };
 
@@ -37,8 +37,17 @@ public:
   }
   
   void receiveCombinedData(LocalMessage *msg) {
-
+    CkPrintf("Pe %d receiving message \n", CkMyPe());
     delete msg; 
+  }
+
+  void runTest() {
+    // send to neighbor
+    double data = 1; 
+
+    MeshStreamerMessage *msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
+    msg->destinationPes[0] = 1; 
+    aggregator[CkMyPe()].insertData(msg);       
   }
 
 };
