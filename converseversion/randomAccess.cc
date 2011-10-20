@@ -102,12 +102,8 @@ void * nop(int *size, void *data, void **remote, int count) {
 CmiInt8 *HPCC_Table;
 CmiInt8 globalStartmyProc;
 
-void initialize(IntMsg *msg)
+void initialize(void *msg)
 {
-    localTableSize = msg->val;
-    globalStartmyProc = CmiMyPe()* localTableSize  ;
-    numOfUpdaters = CmiNumPes();
-    tableSize = localTableSize * numOfUpdaters ;
     HPCC_Table = (CmiInt8*)malloc(sizeof(CmiInt8) * localTableSize);
     for(CmiInt8 i=0; i<localTableSize; i++)
       HPCC_Table[i] = i + globalStartmyProc;
