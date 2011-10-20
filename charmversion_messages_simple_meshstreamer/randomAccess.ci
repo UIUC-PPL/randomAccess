@@ -1,0 +1,26 @@
+mainmodule randomAccess {
+    extern module comlib;
+    readonly CProxy_Main mainProxy;
+    readonly CProxy_Updater updater_array;
+    readonly int numOfUpdaters;
+    readonly int logLocalTableSize;
+    readonly CmiInt8 localTableSize;
+    readonly CmiInt8 tableSize;
+    readonly ComlibInstanceHandle stratStreaming;
+    
+    message DUMMYMSG;
+    mainchare Main {
+        entry Main(CkArgMsg*);
+        entry void verifyDone(CkReductionMsg*); 
+        entry void allUpdatesDone(DUMMYMSG*);
+        entry void start(CkReductionMsg*);
+    };
+    
+    array [1D] Updater {
+        entry Updater();
+        entry void initialize();
+        entry [threaded] void  generateUpdates();
+        entry void updateLocalTable(CmiInt8); 
+        entry void checkErrors();
+    };
+};
