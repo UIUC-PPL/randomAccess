@@ -5,10 +5,10 @@ CProxy_Senders senderGroup;
 CProxy_MeshStreamer aggregator; 
 
 
-#define PAYLOAD_SIZE 8
-#define BUCKET_SIZE 1
+#define PAYLOAD_SIZE 4
+#define BUCKET_SIZE 2
 #define NUM_ROWS 1
-#define NUM_COLUMNS 1
+#define NUM_COLUMNS 2
 #define NUM_PLANES 1
 #define NUM_PES_PER_NODE 2
 #define FLUSH_PERIOD_IN_MS 10
@@ -19,8 +19,9 @@ public:
   Main(CkArgMsg *m) {
 
     senderGroup = CProxy_Senders::ckNew();
+    int totalBufferCapacity = BUCKET_SIZE * (NUM_ROWS + NUM_COLUMNS + NUM_PLANES - 2); 
     aggregator = 
-      CProxy_MeshStreamer::ckNew(PAYLOAD_SIZE, BUCKET_SIZE, 
+      CProxy_MeshStreamer::ckNew(PAYLOAD_SIZE, totalBufferCapacity,
                                  NUM_ROWS, NUM_COLUMNS, NUM_PLANES, 
                                  NUM_PES_PER_NODE, 
                                  static_cast<CProxy_MeshStreamerClient>(senderGroup),  
@@ -37,17 +38,28 @@ public:
   }
   
   void receiveCombinedData(LocalMessage *msg) {
-    CkPrintf("Pe %d receiving message \n", CkMyPe());
+    CkPrintf("[%d] receiving message for %d \n", CkMyPe()), ((int *) msg->data)[0];
     delete msg; 
   }
 
   void runTest() {
     // send to neighbor
-    double data = 1; 
+    
+    MeshStreamerMessage *msg;
+    int destinationPe;
 
-    MeshStreamerMessage *msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
-    msg->destinationPes[0] = 1; 
-    aggregator[CkMyPe()].insertData(msg);       
+    for (int i = 0; i < BUCKET_SIZE; i++) {
+      destinationPe = 1; 
+      msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
+      msg->addData((void *) &destinationPe, destinationPe);
+      aggregator[CkMyPe()].insertData(msg);       
+      msg = NULL;
+      destinationPe = 3; 
+      msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
+      msg->addData((void *) &destinationPe, destinationPe);
+      aggregator[CkMyPe()].insertData(msg);  
+
+    }
   }
 
 };

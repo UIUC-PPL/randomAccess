@@ -88,7 +88,7 @@ class MeshStreamer : public CBase_MeshStreamer {
 		    const MeshStreamerMessageType msgType, void *data);
  public:
 
-  MeshStreamer(int payloadSize, int bucketSize, int numRows, 
+  MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
 	       int numColumns, int numPlanes, int numPesPerNode,
 	       const CProxy_MeshStreamerClient &clientProxy, 
 	       int flushPeriodInMs);

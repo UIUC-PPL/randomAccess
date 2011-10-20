@@ -11,13 +11,15 @@ void MeshStreamerClient::receiveCombinedData(LocalMessage *msg) {
 }
 
 
-MeshStreamer::MeshStreamer(int payloadSize, int bucketSize, int numRows, 
+MeshStreamer::MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
                            int numColumns, int numPlanes, int numPesPerNode,
                            const CProxy_MeshStreamerClient &clientProxy, 
                            int flushPeriodInMs) {
    
   payloadSize_ = payloadSize; 
-  bucketSize_ = bucketSize; 
+  // limit total number of messages in system to totalBufferCapacity
+  // the buffers for your own column and plane are never used
+  bucketSize_ = totalBufferCapacity / (numRows + numColumns + numPlanes - 2); 
   numRows_ = numRows; 
   numColumns_ = numColumns;
   numPlanes_ = numPlanes; 
