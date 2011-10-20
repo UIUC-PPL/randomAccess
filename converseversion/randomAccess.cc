@@ -44,8 +44,9 @@ void start(void *msg)
 {
   CmiPrintf("\nstart RandomAccess\n");
   starttime = CmiWallTimer();
-  CmiSetHandler(msg, generateUpdates_handler);
-  CmiSyncBroadcastAllAndFree(CmiMsgHeaderSizeBytes, msg);
+  void *rmsg = CmiAlloc(CmiMsgHeaderSizeBytes);
+  CmiSetHandler(rmsg, generateUpdates_handler);
+  CmiSyncBroadcastAllAndFree(CmiMsgHeaderSizeBytes, rmsg);
   phase = UPDATE_QUIESCENCE;      //randomAccess phase 
   CmiStartQD(allUpdatesDone, NULL);
 }
@@ -104,6 +105,7 @@ CmiInt8 globalStartmyProc;
 
 void initialize(void *msg)
 {
+    globalStartmyProc = CmiMyPe()* localTableSize  ;
     HPCC_Table = (CmiInt8*)malloc(sizeof(CmiInt8) * localTableSize);
     for(CmiInt8 i=0; i<localTableSize; i++)
       HPCC_Table[i] = i + globalStartmyProc;
