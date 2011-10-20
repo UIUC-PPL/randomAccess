@@ -42,7 +42,6 @@ void allUpdatesDone(void *msg, double t);
 
 void start(void *msg)
 {
-  CmiAssert(CmiMyPe() == 0);
   CmiPrintf("\nstart RandomAccess\n");
   starttime = CmiWallTimer();
   CmiSetHandler(msg, generateUpdates_handler);
@@ -151,6 +150,7 @@ void updateLocalTable(IntMsg *msg)
     CmiInt8 localOffset;
     localOffset = ran & (localTableSize - 1);
     HPCC_Table[localOffset] ^= ran;
+    CmiFree(msg);
 }
 
 void * sum_long(int *size, void *data, void **remote, int count) {
@@ -196,10 +196,9 @@ void main_init(int argc, char** argv)
         CmiPrintf("Main table size   = 2^%d * %d = %lld words\n", logLocalTableSize, CmiNumPes(), tableSize);
         CmiPrintf("Number of processes = %d\n", CmiNumPes());
         CmiPrintf("Number of updates = %lld\n", (4*tableSize));
-        IntMsg *msg = (IntMsg *)CmiAlloc(sizeof(IntMsg));
-        msg->val = localTableSize;
+        void *msg = (void *)CmiAlloc(CmiMsgHeaderSizeBytes);
         CmiSetHandler(msg, initialize_handler);
-        CmiSyncBroadcastAllAndFree(sizeof(IntMsg), msg);
+        CmiSyncBroadcastAllAndFree(CmiMsgHeaderSizeBytes, msg);
   }
 }
 
