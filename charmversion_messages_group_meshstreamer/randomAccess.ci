@@ -1,4 +1,6 @@
 mainmodule randomAccess {
+     extern module comlib;
+    
     readonly CProxy_Main mainProxy;
     readonly CProxy_Updater updater_array;
     readonly int numOfUpdaters;
