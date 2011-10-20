@@ -124,16 +124,16 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
     int destinationIndex;
     switch (msgType) {
 
-    PlaneMessage:
+    case PlaneMessage:
       destinationIndex = 
         myNodeIndex_ + (planeIndex - myPlaneIndex_) * planeSize_;      
       thisProxy[destinationIndex].receiveAggregateData(destinationBucket);
       break;
-    ColumnMessage:
+    case ColumnMessage:
       destinationIndex = myNodeIndex_ + (columnIndex - myColumnIndex_);
       thisProxy[destinationIndex].receiveAggregateData(destinationBucket);
       break;
-    PersonalizedMessage:
+    case PersonalizedMessage:
       destinationIndex = myNodeIndex_ + (rowIndex - myRowIndex_) * numColumns_;
       thisProxy[destinationIndex].receivePersonalizedData(destinationBucket);
       break;
@@ -146,12 +146,15 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
 
 }
 
-void MeshStreamer::insertData(void *data, int destinationPe) {
+void MeshStreamer::insertData(MeshStreamerMessage *msg) {
 
   int planeIndex, columnIndex, rowIndex; // location of destination
   int indexWithinPlane; 
 
   MeshStreamerMessageType msgType; 
+
+  void *data = msg->data;
+  int destinationPe = msg->destinationPes[0];
 
   determineLocation(destinationPe, rowIndex, columnIndex, planeIndex, msgType);
 
@@ -160,15 +163,15 @@ void MeshStreamer::insertData(void *data, int destinationPe) {
   int bucketIndex; 
 
   switch (msgType) {
-  PlaneMessage:
+  case PlaneMessage:
     messageBuffers = planeBuffers_; 
     bucketIndex = planeIndex; 
     break;
-  ColumnMessage:
+  case ColumnMessage:
     messageBuffers = columnBuffers_; 
     bucketIndex = columnIndex; 
     break;
-  PersonalizedMessage:
+  case PersonalizedMessage:
     messageBuffers = personalizedBuffers_; 
     bucketIndex = rowIndex; 
     break;
@@ -180,6 +183,8 @@ void MeshStreamer::insertData(void *data, int destinationPe) {
   storeMessage(messageBuffers, bucketIndex, destinationPe, rowIndex, 
                columnIndex, planeIndex, msgType, data);
 
+
+  delete msg; 
 }
 
 void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
@@ -204,11 +209,11 @@ void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
     int bucketIndex; 
 
     switch (msgType) {
-    ColumnMessage:
+    case ColumnMessage:
       messageBuffers = columnBuffers_; 
       bucketIndex = columnIndex; 
       break;
-    PersonalizedMessage:
+    case PersonalizedMessage:
       messageBuffers = personalizedBuffers_; 
       bucketIndex = rowIndex; 
       break;
@@ -246,8 +251,13 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
 
   }
 
-  for (int i = 0; i < numPesPerNode_; i++) {       
-    clientProxy_[myNodeIndex_ * numPesPerNode_ + i].receiveCombinedData(localMsgs[i]);
+  for (int i = 0; i < numPesPerNode_; i++) {
+    if (localMsgs[i]->numElements > 0) {
+      clientProxy_[myNodeIndex_ * numPesPerNode_ + i].receiveCombinedData(localMsgs[i]);
+    }
+    else {
+      delete localMsgs[i];
+    }
   }
 
   delete msg; 

@@ -10,6 +10,7 @@ mainmodule MeshStreamerTest {
 
   group Senders : MeshStreamerClient {
     entry Senders();
+    entry void runTest();
     //    entry void receiveCombinedData(LocalMessage *msg);
   };
 
