@@ -66,7 +66,7 @@ public:
         CkPrintf("\nstart RandomAccess\n");
         delete msg;
         starttime = CkWallTimer();
-        updater_array.generateUpdates();
+        updater_array_nondelegated.generateUpdates();
         phase = UPDATE_QUIESCENCE;      //randomAccess phase 
         CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
     }
