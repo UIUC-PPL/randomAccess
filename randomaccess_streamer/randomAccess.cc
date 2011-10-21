@@ -160,7 +160,7 @@ public:
                 //sending messages out and receive message to apply the update table
                 msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
                 msg->addData((void *) &ran, tableIndex);
-                aggregator[CkMyPe()].insertData(msg);       
+                aggregator[CkMyPe()/NUM_PES_PER_NODE].insertData(msg);       
                 if(i%1024 == 0)
                     CthYield();   
             }
