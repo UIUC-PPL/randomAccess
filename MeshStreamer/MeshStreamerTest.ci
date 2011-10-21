@@ -3,6 +3,7 @@ mainmodule MeshStreamerTest {
   extern module MeshStreamer;
 
   readonly CProxy_Senders senderGroup;
+  readonly CProxy_MeshStreamer aggregator;
 
   mainchare Main {
     entry Main(CkArgMsg *m);
