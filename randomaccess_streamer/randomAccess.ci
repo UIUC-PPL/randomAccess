@@ -6,6 +6,7 @@ mainmodule randomAccess {
     readonly int logLocalTableSize;
     readonly CmiInt8 localTableSize;
     readonly CmiInt8 tableSize;
+    readonly  CProxy_MeshStreamer aggregator; 
     
     message DUMMYMSG;
     mainchare Main {
