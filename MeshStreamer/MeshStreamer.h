@@ -21,6 +21,10 @@ class LocalMessage : public CMessage_LocalMessage {
     return ++numElements; 
   }  
 
+  void *getFragment(int index) {
+    return (void *) (&data[index * fragmentSize]);  
+  }
+
 };
 
 class MeshStreamerMessage : public CMessage_MeshStreamerMessage {
@@ -86,6 +90,11 @@ class MeshStreamer : public CBase_MeshStreamer {
 		    const int rowIndex, const int columnIndex, 
 		    const int planeIndex,
 		    const MeshStreamerMessageType msgType, void *data);
+
+  void flushLargestBucket(MeshStreamerMessage **messageBuffers, 
+			  const int numBuffers, const int myIndex, 
+			  const int dimensionFactor);  
+			  
  public:
 
   MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
