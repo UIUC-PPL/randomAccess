@@ -16,7 +16,7 @@ mainmodule randomAccess {
         entry void start(CkReductionMsg*);
     };
     
-    group Updater {
+    group Updater: MeshStreamerClient {
         entry Updater();
         entry void initialize();
         entry [threaded] void  generateUpdates();

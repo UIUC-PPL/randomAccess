@@ -71,7 +71,7 @@ public:
             CProxy_MeshStreamer::ckNew(PAYLOAD_SIZE, totalBufferCapacity,
                 NUM_ROWS, NUM_COLUMNS, NUM_PLANES, 
                 NUM_PES_PER_NODE, 
-                static_cast<CProxy_MeshStreamerClient>(updater_array),  
+                updater_array,  
                 FLUSH_PERIOD_IN_MS);
 
         updater_array.initialize();
