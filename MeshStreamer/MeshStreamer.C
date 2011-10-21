@@ -51,6 +51,8 @@ MeshStreamer::MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows
   myRowIndex_ = indexWithinPlane / numColumns_;
   myColumnIndex_ = indexWithinPlane - myRowIndex_ * numColumns_; 
 
+  registerPeriodicFlush();
+
 }
 
 MeshStreamer::~MeshStreamer() {
@@ -265,12 +267,40 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   delete msg; 
 }
 
+void MeshStreamer::flushLargestBucket(MeshStreamerMessage **messageBuffers,
+                                      const int numBuffers, const int myIndex, 
+                                      const int dimensionFactor) {
+
+  int flushIndex, maxSize, destinationIndex;
+  MeshStreamerMessage *destinationBucket; 
+  maxSize = 0;
+  for (int i = 0; i < numBuffers; i++) {
+    if (messageBuffers[i] != NULL && messageBuffers[i]->numElements > maxSize) {
+      maxSize = messageBuffers[i]->numElements;
+      flushIndex = i;
+    } 
+  }
+  if (maxSize > 0) {
+    destinationBucket = messageBuffers[flushIndex];
+    destinationIndex = myNodeIndex_ + (flushIndex - myIndex) * dimensionFactor;
+    thisProxy[destinationIndex].receivePersonalizedData(destinationBucket);
+    messageBuffers[flushIndex] = NULL;
+  }
+
+}
+
 void MeshStreamer::flush() {
 
+  // find and send out the largest personalized, column, and plane buffers
+  flushLargestBucket(personalizedBuffers_, numRows_, myRowIndex_, numColumns_);
+  flushLargestBucket(columnBuffers_, numColumns_, myColumnIndex_, 1);
+  flushLargestBucket(planeBuffers_, numPlanes_, myPlaneIndex_, planeSize_);
+  
 }
 
 void periodicFlushHandler(void *streamer, double time) {
   ((MeshStreamer *) streamer)->flush();
+   ((MeshStreamer *) streamer)->registerPeriodicFlush();
 }
 
 void MeshStreamer::registerPeriodicFlush() {
