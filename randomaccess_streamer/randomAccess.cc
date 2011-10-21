@@ -16,10 +16,10 @@
 
 #define PAYLOAD_SIZE 8
 #define BUCKET_SIZE 2
-#define NUM_ROWS 1
+#define NUM_ROWS 2
 #define NUM_COLUMNS 1
 #define NUM_PLANES 1
-#define NUM_PES_PER_NODE 4
+#define NUM_PES_PER_NODE 2
 #define FLUSH_PERIOD_IN_MS 10
 
 
@@ -162,12 +162,15 @@ public:
     //void updateLocalTable( CmiInt8 ran)
     void receiveCombinedData(LocalMessage *msg) 
     {
-       // CkPrintf("[%d] receiving message for %d \n", CkMyPe()), ((int *) msg->data)[0];
+      // CkPrintf("[%d] receiving message for %d \n", CkMyPe()), ((int *) msg->data)[0];
+      for (int i = 0; i < msg->numElements; i++) {
         CmiInt8 localOffset;
-        CmiInt8 ran = ((CmiInt8*)(msg->data))[0];
+        CmiInt8 ran = ((CmiInt8*)(msg->data))[i];
         localOffset = ran & (localTableSize - 1);
         HPCC_Table[localOffset] ^= ran;
-        delete msg;
+      }
+
+      delete msg;
     }
 
     void checkErrors()
