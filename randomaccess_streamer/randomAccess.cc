@@ -15,11 +15,8 @@
 #define  VERIFY_QUIESCENCE 1
 
 #define PAYLOAD_SIZE 8
-#define BUCKET_SIZE 2
-#define NUM_ROWS 2
-#define NUM_COLUMNS 1
-#define NUM_PLANES 1
-#define NUM_PES_PER_NODE 2
+#define BUCKET_SIZE 1024
+#define NUM_PES_PER_NODE 1
 #define FLUSH_PERIOD_IN_MS 10
 
 
@@ -46,8 +43,19 @@ private:
 public:
     Main(CkArgMsg* args) 
     {
+        //default 256 cores
+        int NUM_ROWS = 2;
+        int NUM_COLUMNS= 2;
+        int NUM_PLANES= 1;
+
         //CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
         logLocalTableSize = atoi(args->argv[1]);
+        if(args->argc>2)
+        {
+            NUM_ROWS = atoi(args->argv[2]);
+            NUM_COLUMNS = atoi(args->argv[3]);
+            NUM_PLANES = atoi(args->argv[4]);
+        }
         delete args;
         numOfUpdaters = CkNumPes();
         localTableSize = 1l << logLocalTableSize;
