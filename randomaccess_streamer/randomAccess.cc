@@ -16,7 +16,6 @@
 
 #define PAYLOAD_SIZE 8
 #define BUCKET_SIZE 1024
-#define NUM_PES_PER_NODE 1
 #define FLUSH_PERIOD_IN_MS 10
 
 
@@ -47,7 +46,9 @@ public:
         int NUM_ROWS = 2;
         int NUM_COLUMNS= 2;
         int NUM_PLANES= 1;
+        int NUM_PES_PER_NODE;
 
+        NUM_PES_PER_NODE = CkMyNodeSize();
         //CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
         logLocalTableSize = atoi(args->argv[1]);
         if(args->argc>2)
@@ -160,7 +161,7 @@ public:
                 //sending messages out and receive message to apply the update table
                 msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
                 msg->addData((void *) &ran, tableIndex);
-                aggregator[CkMyPe()/NUM_PES_PER_NODE].insertData(msg);       
+                aggregator[CkMyNode()].insertData(msg);       
                 if(i%1024 == 0)
                     CthYield();   
             }
