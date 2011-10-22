@@ -6,7 +6,7 @@ MeshStreamerClient::MeshStreamerClient() {
 
 
 void MeshStreamerClient::receiveCombinedData(LocalMessage *msg) {
-
+  CkError("Default implementation of receiveCombinedData should never be called\n");
   delete msg;
 }
 
@@ -118,6 +118,9 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
     int dataSize = bucketSize_ * payloadSize_;  
     messageBuffers[bucketIndex] = 
       new (bucketSize_, dataSize) MeshStreamerMessage(payloadSize_);
+#ifdef DEBUG_STREAMER
+    CkAssert(messageBuffers[bucketIndex] != NULL);
+#endif
   }
   
   MeshStreamerMessage *destinationBucket = messageBuffers[bucketIndex];
@@ -243,7 +246,7 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   int dataSize = bucketSize_ * payloadSize_;
 
   for (int i = 0; i < numPesPerNode_; i++) {
-    localMsgs[i] = new (bucketSize_, dataSize) LocalMessage(payloadSize_);
+    localMsgs[i] = new (dataSize) LocalMessage(payloadSize_);
   }
 
   int destinationPe;
@@ -300,7 +303,7 @@ void MeshStreamer::flush() {
 
 void periodicFlushHandler(void *streamer, double time) {
   ((MeshStreamer *) streamer)->flush();
-   ((MeshStreamer *) streamer)->registerPeriodicFlush();
+  ((MeshStreamer *) streamer)->registerPeriodicFlush();
 }
 
 void MeshStreamer::registerPeriodicFlush() {
