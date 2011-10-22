@@ -301,8 +301,12 @@ void MeshStreamer::flush() {
   
 }
 
+void MeshStreamer::flushStart() {
+  thisProxy[CkMyNode()].flush();
+}
+
 void periodicFlushHandler(void *streamer, double time) {
-  ((MeshStreamer *) streamer)->flush();
+  ((MeshStreamer *) streamer)->flushStart();
   ((MeshStreamer *) streamer)->registerPeriodicFlush();
 }
 

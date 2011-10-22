@@ -108,6 +108,7 @@ class MeshStreamer : public CBase_MeshStreamer {
   void receiveAggregateData(MeshStreamerMessage *msg);
   void receivePersonalizedData(MeshStreamerMessage *msg);
   void flush();
+  void flushStart();
 
   void registerPeriodicFlush();
 
