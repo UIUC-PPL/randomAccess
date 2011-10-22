@@ -152,6 +152,7 @@ public:
         {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
             tableIndex = (ran >>  logLocalTableSize)&(numOfUpdaters-1);
+            //CkPrintf("+++[%d==%d] ran=%lld\n", CkMyPe(), tableIndex, ran);
             if(tableIndex ==  CkMyPe())
             {
                 localOffset = (ran&(tableSize-1))-globalStartmyProc;
