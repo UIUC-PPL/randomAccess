@@ -1,6 +1,6 @@
 #include "randomAccess.decl.h"
 #include "MeshStreamer.h"
-#include "TopoMananger.h"
+#include "TopoManager.h"
 
 #ifdef LONG_IS_64BITS
 #define ZERO64B 0L
@@ -62,7 +62,7 @@ public:
             //use this if you want have specific task for each core
 	    //NUM_ROWS = tmgr.getDimNX();
             NUM_COLUMNS = tmgr.getDimNY();
-            NUM_PLANES = tmgr.DimNZ();
+            NUM_PLANES = tmgr.getDimNZ();
             /*NUM_ROWS = atoi(args->argv[2]);
             NUM_COLUMNS = atoi(args->argv[3]);
             NUM_PLANES = atoi(args->argv[4]);*/
