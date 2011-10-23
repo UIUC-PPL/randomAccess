@@ -1,21 +1,17 @@
 #include "MeshStreamer.h"
 
-MeshStreamerClient::MeshStreamerClient() {
-
-}
-
+MeshStreamerClient::MeshStreamerClient() {}
 
 void MeshStreamerClient::receiveCombinedData(LocalMessage *msg) {
   CkError("Default implementation of receiveCombinedData should never be called\n");
   delete msg;
 }
 
-
-MeshStreamer::MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
+MeshStreamer::MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRows, 
                            int numColumns, int numPlanes, int numPesPerNode,
                            const CProxy_MeshStreamerClient &clientProxy) {
    
-  payloadSize_ = payloadSize; 
+  dataItemSize_ = dataItemSize; 
   // limit total number of messages in system to totalBufferCapacity
   // the buffers for your own column and plane are never used
   bucketSize_ = totalBufferCapacity / (numRows + numColumns + numPlanes - 2); 
@@ -110,9 +106,9 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
 
   // allocate new message if necessary
   if (messageBuffers[bucketIndex] == NULL) {
-    int dataSize = bucketSize_ * payloadSize_;  
+    int dataSize = bucketSize_ * dataItemSize_;  
     messageBuffers[bucketIndex] = 
-      new (bucketSize_, dataSize) MeshStreamerMessage(payloadSize_);
+      new (bucketSize_, dataSize) MeshStreamerMessage(dataItemSize_);
 #ifdef DEBUG_STREAMER
     CkAssert(messageBuffers[bucketIndex] != NULL);
 #endif
@@ -194,7 +190,7 @@ void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
   int rowIndex, columnIndex, planeIndex, destinationPe; 
   MeshStreamerMessageType msgType;   
 
-  for (int i = 0; i < msg->numElements; i++) {
+  for (int i = 0; i < msg->numDataItems; i++) {
     destinationPe = msg->destinationPes[i];
     void *dataFragment = msg->getFragment(i);
     determineLocation(destinationPe, rowIndex, columnIndex, 
@@ -238,14 +234,14 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   // sort fragments into messages for each core on this node
 
   LocalMessage *localMsgs[numPesPerNode_];
-  int dataSize = bucketSize_ * payloadSize_;
+  int dataSize = bucketSize_ * dataItemSize_;
 
   for (int i = 0; i < numPesPerNode_; i++) {
-    localMsgs[i] = new (dataSize) LocalMessage(payloadSize_);
+    localMsgs[i] = new (dataSize) LocalMessage(dataItemSize_);
   }
 
   int destinationPe;
-  for (int i = 0; i < msg->numElements; i++) {
+  for (int i = 0; i < msg->numDataItems; i++) {
 
     destinationPe = msg->destinationPes[i]; 
     void *dataFragment = msg->getFragment(i);   
@@ -254,7 +250,7 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   }
 
   for (int i = 0; i < numPesPerNode_; i++) {
-    if (localMsgs[i]->numElements > 0) {
+    if (localMsgs[i]->numDataItems > 0) {
       clientProxy_[myNodeIndex_ * numPesPerNode_ + i].receiveCombinedData(localMsgs[i]);
     }
     else {
@@ -273,8 +269,8 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
            continue;
        //flush all messages in i bucket
        msg = messageBuffers[i];
-       for (int j = 0; j < msg->numElements; j++) {
-           LocalMessage *localMsgs = new (payloadSize_) LocalMessage(payloadSize_);
+       for (int j = 0; j < msg->numDataItems; j++) {
+           LocalMessage *localMsgs = new (dataItemSize_) LocalMessage(dataItemSize_);
            int destinationPe = msg->destinationPes[j]; 
            void *dataFragment = msg->getFragment(j);   
            localMsgs->addData(dataFragment);

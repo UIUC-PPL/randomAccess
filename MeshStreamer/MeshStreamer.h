@@ -7,46 +7,46 @@ enum MeshStreamerMessageType {PlaneMessage, ColumnMessage, PersonalizedMessage};
 
 class LocalMessage : public CMessage_LocalMessage {
 public:
-    int numElements; 
-    int fragmentSize; 
+    int numDataItems; 
+    int dataItemSize; 
     char *data;
 
-    LocalMessage(int fragmentSizeInBytes) {
-        numElements = 0; 
-        fragmentSize = fragmentSizeInBytes; 
+    LocalMessage(int dataItemSizeInBytes) {
+        numDataItems = 0; 
+        dataItemSize = dataItemSizeInBytes; 
     }
 
-    int addData(void *payload) {
-        memcpy(&data[numElements * fragmentSize], payload, fragmentSize);
-        return ++numElements; 
+    int addData(void *dataItem) {
+        memcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
+        return ++numDataItems; 
     } 
 
     void *getFragment(int index) {
-        return (void *) (&data[index * fragmentSize]);  
+        return (void *) (&data[index * dataItemSize]);  
     }
 
 };
 
 class MeshStreamerMessage : public CMessage_MeshStreamerMessage {
 public:
-    int numElements;
-    int fragmentSize;
+    int numDataItems;
+    int dataItemSize;
     int *destinationPes;
     char *data;
 
-    MeshStreamerMessage(int fragmentSizeInBytes) {    
-        numElements = 0; 
-        fragmentSize = fragmentSizeInBytes;
+    MeshStreamerMessage(int dataItemSizeInBytes) {    
+        numDataItems = 0; 
+        dataItemSize = dataItemSizeInBytes;
     }
 
-    int addData(void *payload, int destinationPe) {
-        memcpy(&data[numElements * fragmentSize], payload, fragmentSize);
-        destinationPes[numElements] = destinationPe;
-        return ++numElements; 
+    int addData(void *dataItem, int destinationPe) {
+        memcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
+        destinationPes[numDataItems] = destinationPe;
+        return ++numDataItems; 
     }
 
     void *getFragment(int index) {
-        return (void *) (&data[index * fragmentSize]);  
+        return (void *) (&data[index * dataItemSize]);  
     }
 };
 
@@ -60,7 +60,7 @@ class MeshStreamerClient : public CBase_MeshStreamerClient {
 class MeshStreamer : public CBase_MeshStreamer {
 
 private:
-    int payloadSize_;
+    int dataItemSize_;
     int bucketSize_; 
 
     int numNodes_; 
@@ -91,7 +91,7 @@ private:
         const MeshStreamerMessageType msgType, void *data);
 public:
 
-    MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
+    MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRows, 
         int numColumns, int numPlanes, int numPesPerNode,
         const CProxy_MeshStreamerClient &clientProxy);
 

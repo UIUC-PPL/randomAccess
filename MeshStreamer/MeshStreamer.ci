@@ -17,7 +17,7 @@ module MeshStreamer {
 
   nodegroup MeshStreamer {
 
-    entry MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
+    entry MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRows, 
 		       int numColumns, int numPlanes, int numPesPerNode,
 		       const CProxy_MeshStreamerClient &clientProxy );   
 

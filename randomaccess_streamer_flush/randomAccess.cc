@@ -12,8 +12,8 @@
 #define PERIOD 1317624576693539401LL
 #endif
 
-#define PAYLOAD_SIZE 8
-#define BUCKET_SIZE 1024
+#define DATA_ITEM_SIZE 8
+#define NUM_MESSAGES_BUFFERED 1024
 #define FLUSH_PERIOD_IN_MS 10
 
 CProxy_Main     mainProxy;
@@ -54,7 +54,7 @@ public:
         mainhandle = thishandle;  
         //initialize the global table 
         updater_array   = CProxy_Updater::ckNew();
-        aggregator = CProxy_MeshStreamer::ckNew(PAYLOAD_SIZE, BUCKET_SIZE, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, NUM_PES_PER_NODE, updater_array);
+        aggregator = CProxy_MeshStreamer::ckNew(DATA_ITEM_SIZE, NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, NUM_PES_PER_NODE, updater_array);
     }
     // start RandomAccess
     void start(CkReductionMsg *msg)
@@ -128,7 +128,7 @@ public:
             }
             else {
                 //sending messages out and receive message to apply the update table
-                MeshStreamerMessage *msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
+                MeshStreamerMessage *msg = new (1, DATA_ITEM_SIZE) MeshStreamerMessage(DATA_ITEM_SIZE);
                 msg->addData((void *) &ran, tableIndex);
                 aggregator[CkMyNode()].insertData(msg);      
                 if(i%1024 == 0) CthYield();   
@@ -138,7 +138,7 @@ public:
     //receive remote updates and update the table
     void receiveCombinedData(LocalMessage *msg) 
     {
-        for (int i = 0; i < msg->numElements; i++) {
+        for (int i = 0; i < msg->numDataItems; i++) {
             CmiUInt8 ran = ((CmiUInt8*)(msg->data))[i];
             CmiInt8  localOffset = ran & (localTableSize - 1);
             HPCC_Table[localOffset] ^= ran;
