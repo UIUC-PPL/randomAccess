@@ -22,7 +22,7 @@ CmiInt8 localTableSize;
 CmiInt8 tableSize;
 int numOfUpdaters;
 
-CmiInt8 HPCC_starts(CmiInt8 n);
+CmiUInt8 HPCC_starts(CmiInt8 n);
 class DUMMYMSG : public CMessage_DUMMYMSG {
 };
 
@@ -100,14 +100,14 @@ public:
 
 class Updater : public CBase_Updater {
 private:
-    CmiInt8 *HPCC_Table;
-    CmiInt8 globalStartmyProc;
+    CmiUInt8 *HPCC_Table;
+    CmiUInt8 globalStartmyProc;
 public:
     Updater() {}
     Updater(CkMigrateMessage* m) {}
     void initialize(){
         globalStartmyProc = CkMyPe()* localTableSize  ;
-        HPCC_Table = (CmiInt8*)malloc(sizeof(CmiInt8) * localTableSize);
+        HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
         for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
         contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
@@ -115,8 +115,8 @@ public:
 
     void generateUpdates()
     {
-        CmiInt8 updatesNum;
-        CmiInt8 ran, localOffset;
+        CmiUInt8 updatesNum;
+        CmiUInt8 ran, localOffset;
         int tableIndex;
         ran= HPCC_starts(4* globalStartmyProc);
         updatesNum = 4 * localTableSize;
@@ -138,7 +138,7 @@ public:
         }
     }
 
-    void updateLocalTable( CmiInt8 ran)
+    void updateLocalTable( CmiUInt8 ran)
     {
         CmiInt8 localOffset;
         localOffset = ran & (localTableSize - 1);
@@ -156,11 +156,11 @@ public:
 };
 
 /** random generator */
-CmiInt8 HPCC_starts(CmiInt8 n)
+CmiUInt8 HPCC_starts(CmiInt8 n)
 {
     int i, j;
-    CmiInt8 m2[64];
-    CmiInt8 temp, ran;
+    CmiUInt8 m2[64];
+    CmiUInt8 temp, ran;
     while (n < 0) n += PERIOD;
     while (n > PERIOD) n -= PERIOD;
     if (n == 0) return 0x1;
