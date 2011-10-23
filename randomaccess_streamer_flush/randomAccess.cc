@@ -55,7 +55,6 @@ public:
         NUM_PES_PER_NODE = CkMyNodeSize();
         //CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
         logLocalTableSize = atoi(args->argv[1]);
-        if(args->argc>2)
         {
             //use this if you do not want to differentiate based on core ID's
 	    NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
@@ -63,10 +62,9 @@ public:
 	    //NUM_ROWS = tmgr.getDimNX();
             NUM_COLUMNS = tmgr.getDimNY();
             NUM_PLANES = tmgr.getDimNZ();
-            /*NUM_ROWS = atoi(args->argv[2]);
-            NUM_COLUMNS = atoi(args->argv[3]);
-            NUM_PLANES = atoi(args->argv[4]);*/
         }
+	CkPrintf("Running on NX %d NY %d NZ %d cores_per_node %d\n",NUM_ROWS,NUM_COLUMNS,NUM_PLANES,NUM_PES_PER_NODE);
+
         delete args;
         numOfUpdaters = CkNumPes();
         localTableSize = 1l << logLocalTableSize;
