@@ -1,5 +1,6 @@
 #include "randomAccess.decl.h"
 #include "MeshStreamer.h"
+#include "TopoMananger.h"
 
 #ifdef LONG_IS_64BITS
 #define ZERO64B 0L
@@ -49,15 +50,22 @@ public:
         int NUM_COLUMNS= 2;
         int NUM_PLANES= 1;
         int NUM_PES_PER_NODE;
+	TopoManager tmgr;
 
         NUM_PES_PER_NODE = CkMyNodeSize();
         //CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
         logLocalTableSize = atoi(args->argv[1]);
         if(args->argc>2)
         {
-            NUM_ROWS = atoi(args->argv[2]);
+            //use this if you do not want to differentiate based on core ID's
+	    NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
+            //use this if you want have specific task for each core
+	    //NUM_ROWS = tmgr.getDimNX();
+            NUM_COLUMNS = tmgr.getDimNY();
+            NUM_PLANES = tmgr.DimNZ();
+            /*NUM_ROWS = atoi(args->argv[2]);
             NUM_COLUMNS = atoi(args->argv[3]);
-            NUM_PLANES = atoi(args->argv[4]);
+            NUM_PLANES = atoi(args->argv[4]);*/
         }
         delete args;
         numOfUpdaters = CkNumPes();
