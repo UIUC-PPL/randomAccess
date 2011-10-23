@@ -1,18 +1,15 @@
-CHARMC = $(HOME)/git/charm.git/bluegenep-xlc/bin/charmc 
-BINARY = random_access projections
+CHARMC = /expand/home/jessie/PPL/git/charm/mpi-linux-x86_64/bin/charmc 
+BINARY = random_access 
 
 SRCFILES = $(wildcard *.cc)
 OBJFILES = $(SRCFILES:.cc=.o)
 CIFILES = $(wildcard *.ci)
 HFILES = $(CIFILES:.ci=.decl.h) $(CIFILES:.ci=.def.h)
-CHARMCFLAGS= -g -O3 $(OPTS)
+CHARMCFLAGS= -g  $(OPTS)
 
 all: $(BINARY) 
 random_access: $(OBJFILES)
 	$(CHARMC) $(CHARMCFLAGS) -language charm++ -o $@ $+
-
-projections: $(OBJFILES)
-	$(CHARMC) -language charm++ -tracemode projections -o random_access.prj $+
 
 .SECONDARY: $(patsubst %.cc,%.decl.h,$(wildcard *.cc))
 .SECONDARY: $(patsubst %.cc,%.def.h,$(wildcard *.cc))
@@ -31,4 +28,4 @@ testprj:random_access.prj
 	poe ./random_access.prj 20 1 +traceroot /u/home/ac/yanhuas/git/HPCC/charmversion_messages/projections_result -llfile jobpoelapi.cmd +gz-trace
 
 clean:
-	rm -f *.o *.decl.h *.def.h $(BINARY) charmrun* random_access.prj
+	rm -f *.o *.decl.h *.def.h $(BINARY) charmrun* 

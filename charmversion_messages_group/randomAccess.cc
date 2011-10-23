@@ -10,84 +10,59 @@
 #define PERIOD 1317624576693539401LL
 #endif
 
-#define  UPDATE_QUIESCENCE  0
-#define  VERIFY_QUIESCENCE 1
-
-/* Readonly variables */
-CProxy_Main mainProxy;
-CProxy_Updater updater_array;
-
-int logLocalTableSize;
-CmiInt8 localTableSize;
-CmiInt8 tableSize;
-int numOfUpdaters;
+/* Readonly global variables */
+CProxy_Main     mainProxy;
+int             N;                  //log local table size    
+CmiInt8         localTableSize;
+CmiInt8         tableSize;
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
-class DUMMYMSG : public CMessage_DUMMYMSG {
-};
 
 class Main : public CBase_Main {
 private:
-    CkChareID mainhandle;
-    double starttime;
-    int phase;    
-
+    CkChareID   mainhandle;
+    CProxy_Updater  updater_array;
+    double      starttime;
 public:
     Main(CkArgMsg* args) 
     {
-        //CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
-        logLocalTableSize = atoi(args->argv[1]);
+        N = 25;
+        if(args->argc>1)
+            N = atoi(args->argv[1]);
         delete args;
-        numOfUpdaters = CkNumPes();
-        localTableSize = 1l << logLocalTableSize;
-        tableSize = localTableSize * numOfUpdaters ;
-        CkPrintf("Main table size   = 2^%d * %d = %lld words\n", logLocalTableSize, CkNumPes(), tableSize);
-        CkPrintf("Number of processes = %d\n", CkNumPes());
+        localTableSize = 1l << N;
+        tableSize = localTableSize * CkNumPes();
+        CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
+        CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
         mainhandle = thishandle;  
+        //initialize the global table 
         updater_array   = CProxy_Updater::ckNew();
-        //updater_array   = CProxy_Updater::ckNew(numOfUpdaters);
-        updater_array.initialize();
     }
-
-    // start to update 
     void start(CkReductionMsg *msg)
     {
-        CkPrintf("\nstart RandomAccess\n");
+        // start updating
         delete msg;
         starttime = CkWallTimer();
         updater_array.generateUpdates();
-        phase = UPDATE_QUIESCENCE;      //randomAccess phase 
-        CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
+        //when the updating is done, allUpdatesDone function is called
+        CkStartQD(CkIndex_Main::allUpdatesDone(), &mainhandle);
     }
-    void allUpdatesDone(DUMMYMSG *msg)
+    void allUpdatesDone()
     {
-        delete msg;
-        double singlegups;
-        double gups;
-        double update_walltime;
-        
-        update_walltime = CkWallTimer() - starttime;
-        if(phase == UPDATE_QUIESCENCE)
-        {
-            gups = 1e-9 * tableSize * 4.0/update_walltime;
-            singlegups =  gups/numOfUpdaters;
-            CkPrintf( "CPU time used = %.6f seconds\n", update_walltime );
-            CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
-            CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
-            CkPrintf("\n\nStart verifying...\n");
-            starttime = CkWallTimer();
-            phase = VERIFY_QUIESCENCE;      //verify
-            updater_array.generateUpdates();
-            CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
-        }else if(phase == VERIFY_QUIESCENCE)
-        {
-            //verify done
-            updater_array.checkErrors(); 
-        }
+        double update_walltime = CkWallTimer() - starttime;
+        double gups = 1e-9 * tableSize * 4.0/update_walltime;
+        double singlegups =  gups/CkNumPes();
+        CkPrintf( "CPU time used = %.6f seconds\n", update_walltime );
+        CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
+        CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
+        // repeat the update to verify 
+        updater_array.generateUpdates();
+        //After verification is done, check errors 
+        CkStartQD(CkCallback(CkIndex_Updater::checkErrors(), updater_array));
     }
-
+    
     void verifyDone(CkReductionMsg *msg) 
     {
         CmiInt8 GlbnumErrors = *(CmiInt8*)msg->getData();
@@ -103,50 +78,39 @@ private:
     CmiUInt8 *HPCC_Table;
     CmiUInt8 globalStartmyProc;
 public:
-    Updater() {}
-    Updater(CkMigrateMessage* m) {}
-    void initialize(){
-        globalStartmyProc = CkMyPe()* localTableSize  ;
+    Updater() {
+        globalStartmyProc = CkMyPe()* localTableSize;
         HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
         for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
         contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
     }
-
-    void generateUpdates()
-    {
-        CmiUInt8 updatesNum;
-        CmiUInt8 ran, localOffset;
-        int tableIndex;
-        ran= HPCC_starts(4* globalStartmyProc);
-        updatesNum = 4 * localTableSize;
+    void generateUpdates() {
+        CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
+        CmiUInt8 updatesNum = 4 * localTableSize;
         for(CmiInt8 i=0; i<updatesNum;i++)
         {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
-            tableIndex = (ran >>  logLocalTableSize)&(numOfUpdaters-1);
+            int tableIndex = (ran >>  N)&(CkNumPes()-1);
             if(tableIndex ==  CkMyPe())
             {
-                localOffset = (ran&(tableSize-1))-globalStartmyProc;
+                CmiUInt8 localOffset = (ran&(tableSize-1))-globalStartmyProc;
                 HPCC_Table[localOffset] ^= ran;
             }
             else {
                 //sending messages out and receive message to apply the update table
-                updater_array[tableIndex].updateLocalTable(ran);
-                if(i%1024 == 0)
-                    CthYield();   
+                thisProxy[tableIndex].updateLocalTable(ran);
+                if(i%1024 == 0) CthYield();               //processing incoming messages
             }
         }
     }
 
-    void updateLocalTable( CmiUInt8 ran)
-    {
-        CmiInt8 localOffset;
-        localOffset = ran & (localTableSize - 1);
+    void updateLocalTable( CmiUInt8 ran) {
+        CmiInt8 localOffset = ran & (localTableSize - 1);
         HPCC_Table[localOffset] ^= ran;
     }
 
-    void checkErrors()
-    {
+    void checkErrors() {
         CmiInt8 numErrors = 0;
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
