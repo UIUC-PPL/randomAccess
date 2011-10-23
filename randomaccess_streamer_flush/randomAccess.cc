@@ -12,128 +12,81 @@
 #define PERIOD 1317624576693539401LL
 #endif
 
-#define  FLUSH_QUIESCENCE   0
-#define  UPDATE_QUIESCENCE  1
-#define  VERIFY_QUIESCENCE 2
-#define  FLUSH_VERIFY_QUIESCENCE   3
-
 #define PAYLOAD_SIZE 8
 #define BUCKET_SIZE 1024
 #define FLUSH_PERIOD_IN_MS 10
 
-
-/* Readonly variables */
-CProxy_Main mainProxy;
-CProxy_Updater updater_array;
+CProxy_Main     mainProxy;
+int             N;                  //log local table size    
+CmiInt8         localTableSize;
+CmiInt8         tableSize;
 CProxy_MeshStreamer aggregator; 
 
-int logLocalTableSize;
-CmiInt8 localTableSize;
-CmiInt8 tableSize;
-int numOfUpdaters;
-
 CmiUInt8 HPCC_starts(CmiInt8 n);
-class DUMMYMSG : public CMessage_DUMMYMSG {
-};
 
 class Main : public CBase_Main {
 private:
     CkChareID mainhandle;
+    CProxy_Updater  updater_array;
     double starttime;
-    int phase;    
-
 public:
-    Main(CkArgMsg* args) 
-    {
-        //default 256 cores
+    Main(CkArgMsg* args) {
         int NUM_ROWS = 2;
         int NUM_COLUMNS= 2;
         int NUM_PLANES= 1;
         int NUM_PES_PER_NODE;
-	TopoManager tmgr;
-
+        TopoManager tmgr;
+        N = atoi(args->argv[1]);
         NUM_PES_PER_NODE = CkMyNodeSize();
-        //CkPrintf("Usage: RandomAccess logLocaltablesize %d   %d\n", sizeof(CmiInt8), sizeof(CmiInt8));
-        logLocalTableSize = atoi(args->argv[1]);
-        {
-            //use this if you do not want to differentiate based on core ID's
-	    NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
-            //use this if you want have specific task for each core
-	    //NUM_ROWS = tmgr.getDimNX();
-            NUM_COLUMNS = tmgr.getDimNY();
-            NUM_PLANES = tmgr.getDimNZ();
-        }
-	CkPrintf("Running on NX %d NY %d NZ %d cores_per_node %d\n",NUM_ROWS,NUM_COLUMNS,NUM_PLANES,NUM_PES_PER_NODE);
+        //use this if you do not want to differentiate based on core ID's
+        NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
+        NUM_COLUMNS = tmgr.getDimNY();
+        NUM_PLANES = tmgr.getDimNZ();
+        CkPrintf("Running on NX %d NY %d NZ %d cores_per_node %d\n",NUM_ROWS,NUM_COLUMNS,NUM_PLANES,NUM_PES_PER_NODE);
 
         delete args;
-        numOfUpdaters = CkNumPes();
-        localTableSize = 1l << logLocalTableSize;
-        tableSize = localTableSize * numOfUpdaters ;
-        CkPrintf("Main table size   = 2^%d * %d = %lld words\n", logLocalTableSize, CkNumPes(), tableSize);
-        CkPrintf("Number of processes = %d\n", CkNumPes());
+        localTableSize = 1l << N;
+        tableSize = localTableSize * CkNumPes();
+        CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
+        CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
         mainhandle = thishandle;  
+        //initialize the global table 
         updater_array   = CProxy_Updater::ckNew();
-        int totalBufferCapacity = BUCKET_SIZE * (NUM_ROWS + NUM_COLUMNS + NUM_PLANES - 2); 
-        aggregator = 
-            CProxy_MeshStreamer::ckNew(PAYLOAD_SIZE, totalBufferCapacity,
-                NUM_ROWS, NUM_COLUMNS, NUM_PLANES, 
-                NUM_PES_PER_NODE, 
-                updater_array,  
-                FLUSH_PERIOD_IN_MS);
-
-        updater_array.initialize();
+        aggregator = CProxy_MeshStreamer::ckNew(PAYLOAD_SIZE, BUCKET_SIZE, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, NUM_PES_PER_NODE, updater_array);
     }
 
-    // start to update 
     void start(CkReductionMsg *msg)
     {
-        CkPrintf("\nstart RandomAccess\n");
         delete msg;
         starttime = CkWallTimer();
         updater_array.generateUpdates();
-        //phase = UPDATE_QUIESCENCE;
-        phase = FLUSH_QUIESCENCE;
-        CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
+        CkStartQD(CkIndex_Main::startFlush(), &mainhandle);
     }
-    void allUpdatesDone(DUMMYMSG *msg)
+
+    void startFlush()
     {
-        delete msg;
-        double singlegups;
-        double gups;
-        double update_walltime;
-        
-        update_walltime = CkWallTimer() - starttime;
-        if(phase == FLUSH_QUIESCENCE)
-        {
-            CkPrintf( "Before flushing CPU time used = %.6f seconds\n", update_walltime);
-            aggregator.flushDirect();
-            phase = UPDATE_QUIESCENCE;      //randomAccess phase 
-            CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
-        }
-        else if(phase == UPDATE_QUIESCENCE)
-        {
-            gups = 1e-9 * tableSize * 4.0/update_walltime;
-            singlegups =  gups/numOfUpdaters;
-            CkPrintf( "CPU time used = %.6f seconds\n", update_walltime );
-            CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
-            CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
-            CkPrintf("\n\nStart verifying...\n");
-            starttime = CkWallTimer();
-            phase = VERIFY_QUIESCENCE;      //verify
-            updater_array.generateUpdates();
-            CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
-        }else if(phase == VERIFY_QUIESCENCE)
-        {
-            //verify done, flush msgs
-            aggregator.flushDirect();
-            phase = FLUSH_VERIFY_QUIESCENCE;      //randomAccess phase 
-            CkStartQD(CkIndex_Main::allUpdatesDone((DUMMYMSG *)0), &mainhandle);
-        }else if(phase == FLUSH_VERIFY_QUIESCENCE)
-        {
-            updater_array.checkErrors(); 
-        }
+        aggregator.flushDirect();
+        CkStartQD(CkIndex_Main::allUpdatesDone(), &mainhandle);
+    }
+    void allUpdatesDone()
+    {
+        double update_walltime = CkWallTimer() - starttime;
+        double gups = 1e-9 * tableSize * 4.0/update_walltime;
+        double singlegups =  gups/CkNumPes();
+        CkPrintf( "CPU time used = %.6f seconds\n", update_walltime );
+        CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
+        CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
+        // repeat the update to verify 
+        updater_array.generateUpdates();
+        CkStartQD(CkIndex_Main::startFlushVerify(), &mainhandle);
+    }
+    
+    void startFlushVerify()
+    {
+        aggregator.flushDirect();
+        CkStartQD(CkCallback(CkIndex_Updater::checkErrors(), updater_array));
     }
 
     void verifyDone(CkReductionMsg *msg) 
@@ -150,47 +103,35 @@ class Updater : public MeshStreamerClient {
 private:
     CmiUInt8 *HPCC_Table;
     CmiUInt8 globalStartmyProc;
-    int send_cnt;
-    int recv_cnt;
 public:
-    Updater() {}
-    Updater(CkMigrateMessage* m) {}
-    void initialize(){
+    Updater() {
         globalStartmyProc = CkMyPe()* localTableSize  ;
         HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
         for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
         contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
-        send_cnt = recv_cnt = 0;
     }
 
+    Updater(CkMigrateMessage* m) {}
     void generateUpdates()
     {
-        CmiInt8 updatesNum;
-        CmiUInt8 ran, localOffset;
-        int tableIndex;
-        MeshStreamerMessage *msg;
-        ran= HPCC_starts(4* globalStartmyProc);
-        updatesNum = 4 * localTableSize;
+        CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
+        CmiUInt8 updatesNum = 4 * localTableSize;
         for(CmiInt8 i=0; i<updatesNum;i++)
         {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
-            tableIndex = (ran >>  logLocalTableSize)&(numOfUpdaters-1);
-            //CkPrintf("+++[%d==%d] ran=%lld\n", CkMyPe(), tableIndex, ran);
+            int tableIndex = (ran >>  N)&(CkNumPes()-1);
             if(tableIndex ==  CkMyPe())
             {
-                localOffset = (ran&(tableSize-1))-globalStartmyProc;
+                CmiUInt8 localOffset = (ran&(tableSize-1))-globalStartmyProc;
                 HPCC_Table[localOffset] ^= ran;
             }
             else {
-                //CkPrintf("[%d][%d==%llu]\n", CkMyPe(), tableIndex, ran);
                 //sending messages out and receive message to apply the update table
-                msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
+                MeshStreamerMessage *msg = new (1, PAYLOAD_SIZE) MeshStreamerMessage(PAYLOAD_SIZE);
                 msg->addData((void *) &ran, tableIndex);
                 aggregator[CkMyNode()].insertData(msg);      
-                send_cnt++;
-                if(i%1024 == 0)
-                    CthYield();   
+                if(i%1024 == 0) CthYield();   
             }
         }
     }
@@ -198,22 +139,16 @@ public:
     //void updateLocalTable( CmiInt8 ran)
     void receiveCombinedData(LocalMessage *msg) 
     {
-      // CkPrintf("[%d] receiving message for %d \n", CkMyPe()), ((int *) msg->data)[0];
-      for (int i = 0; i < msg->numElements; i++) {
-        CmiInt8 localOffset;
-        CmiUInt8 ran = ((CmiUInt8*)(msg->data))[i];
-        localOffset = ran & (localTableSize - 1);
-        HPCC_Table[localOffset] ^= ran;
-        //CkPrintf("[%d==%llu]++\n", CkMyPe(), ran);
-        recv_cnt++;
-      }
-
-      delete msg;
+        for (int i = 0; i < msg->numElements; i++) {
+            CmiUInt8 ran = ((CmiUInt8*)(msg->data))[i];
+            CmiInt8  localOffset = ran & (localTableSize - 1);
+            HPCC_Table[localOffset] ^= ran;
+        }
+        delete msg;
     }
 
     void checkErrors()
     {
-
         CmiInt8 numErrors = 0;
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
