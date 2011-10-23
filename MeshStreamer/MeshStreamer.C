@@ -51,7 +51,7 @@ MeshStreamer::MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows
   myRowIndex_ = indexWithinPlane / numColumns_;
   myColumnIndex_ = indexWithinPlane - myRowIndex_ * numColumns_; 
 
-  registerPeriodicFlush();
+  //registerPeriodicFlush();
 
 }
 
@@ -312,6 +312,37 @@ void periodicFlushHandler(void *streamer, double time) {
 
 void MeshStreamer::registerPeriodicFlush() {
   CcdCallFnAfter(periodicFlushHandler, (void *) this, flushPeriod_);
+}
+
+void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuffers, int &cnt)
+{
+    MeshStreamerMessage *msg;
+    for (int i = 0; i < numBuffers; i++) {
+       if(messageBuffers[i] == NULL)
+           continue;
+       //flush all messages in i bucket
+       msg = messageBuffers[i];
+       for (int j = 0; j < msg->numElements; j++) {
+           LocalMessage *localMsgs = new (payloadSize_) LocalMessage(payloadSize_);
+           int destinationPe = msg->destinationPes[j]; 
+           void *dataFragment = msg->getFragment(j);   
+           localMsgs->addData(dataFragment);
+           clientProxy_[destinationPe].receiveCombinedData(localMsgs);
+           cnt++;
+       }
+       messageBuffers[i] = NULL;
+    }
+}
+
+void MeshStreamer::flushDirect()
+{   int cnt=0;
+    flushBuckets(planeBuffers_, numPlanes_, cnt);
+    flushBuckets(columnBuffers_, numColumns_, cnt);
+    flushBuckets(personalizedBuffers_, numRows_, cnt);
+}
+
+void MeshStreamer::flushAll() {
+  thisProxy[CkMyNode()].flushDirect();
 }
 
 #include "MeshStreamer.def.h"

@@ -110,6 +110,9 @@ class MeshStreamer : public CBase_MeshStreamer {
   void flush();
   void flushStart();
 
+  void flushBuckets(MeshStreamerMessage **messageBuffers, int, int&);
+  void flushDirect();
+  void flushAll() ;
   void registerPeriodicFlush();
 
 };
