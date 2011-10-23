@@ -117,7 +117,7 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
   MeshStreamerMessage *destinationBucket = messageBuffers[bucketIndex];
 
   // copy data into message and send if buffer is full
-  if (destinationBucket->addData(data, destinationPe) == bucketSize_) {
+  if (destinationBucket->addDataItem(data, destinationPe) == bucketSize_) {
 
     int destinationIndex;
     switch (msgType) {
@@ -245,7 +245,7 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
 
     destinationPe = msg->destinationPes[i]; 
     void *dataItem = msg->getDataItem(i);   
-    localMsgs[destinationPe % numPesPerNode_]->addData(dataItem);
+    localMsgs[destinationPe % numPesPerNode_]->addDataItem(dataItem);
 
   }
 
@@ -273,7 +273,7 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
            LocalMessage *localMsgs = new (dataItemSize_) LocalMessage(dataItemSize_);
            int destinationPe = msg->destinationPes[j]; 
            void *dataItem = msg->getDataItem(j);   
-           localMsgs->addData(dataItem);
+           localMsgs->addDataItem(dataItem);
            clientProxy_[destinationPe].receiveCombinedData(localMsgs);
        }
        messageBuffers[i] = NULL;

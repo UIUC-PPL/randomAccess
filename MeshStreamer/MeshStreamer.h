@@ -16,7 +16,7 @@ public:
         dataItemSize = dataItemSizeInBytes; 
     }
 
-    int addData(void *dataItem) {
+    int addDataItem(void *dataItem) {
         memcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
         return ++numDataItems; 
     } 
@@ -39,7 +39,7 @@ public:
         dataItemSize = dataItemSizeInBytes;
     }
 
-    int addData(void *dataItem, int destinationPe) {
+    int addDataItem(void *dataItem, int destinationPe) {
         memcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
         destinationPes[numDataItems] = destinationPe;
         return ++numDataItems; 
