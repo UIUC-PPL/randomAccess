@@ -48,9 +48,6 @@ MeshStreamer::MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows
   int indexWithinPlane = myNodeIndex_ - myPlaneIndex_ * planeSize_;
   myRowIndex_ = indexWithinPlane / numColumns_;
   myColumnIndex_ = indexWithinPlane - myRowIndex_ * numColumns_; 
-
-  //registerPeriodicFlush();
-
 }
 
 MeshStreamer::~MeshStreamer() {

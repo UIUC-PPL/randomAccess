@@ -56,7 +56,7 @@ public:
         updater_array   = CProxy_Updater::ckNew();
         aggregator = CProxy_MeshStreamer::ckNew(PAYLOAD_SIZE, BUCKET_SIZE, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, NUM_PES_PER_NODE, updater_array);
     }
-
+    // start RandomAccess
     void start(CkReductionMsg *msg)
     {
         delete msg;
@@ -64,7 +64,7 @@ public:
         updater_array.generateUpdates();
         CkStartQD(CkIndex_Main::startFlush(), &mainhandle);
     }
-
+    //flush the messages that sit in the mesh streamer buffer
     void startFlush()
     {
         aggregator.flushDirect();
@@ -135,8 +135,7 @@ public:
             }
         }
     }
-
-    //void updateLocalTable( CmiInt8 ran)
+    //receive remote updates and update the table
     void receiveCombinedData(LocalMessage *msg) 
     {
         for (int i = 0; i < msg->numElements; i++) {
