@@ -19,16 +19,13 @@ module MeshStreamer {
 
     entry MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
 		       int numColumns, int numPlanes, int numPesPerNode,
-		       const CProxy_MeshStreamerClient &clientProxy, 
-		       int flushPeriodInMs);   
+		       const CProxy_MeshStreamerClient &clientProxy );   
 
 
     entry [exclusive] void insertData(MeshStreamerMessage *msg);
     entry [exclusive] void receiveAggregateData(MeshStreamerMessage *msg);
     entry [exclusive] void receivePersonalizedData(MeshStreamerMessage *msg);
-    entry [exclusive] void flush();
     entry [exclusive] void flushDirect();
-
   };
 
 };

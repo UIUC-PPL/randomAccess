@@ -13,8 +13,7 @@ void MeshStreamerClient::receiveCombinedData(LocalMessage *msg) {
 
 MeshStreamer::MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows, 
                            int numColumns, int numPlanes, int numPesPerNode,
-                           const CProxy_MeshStreamerClient &clientProxy, 
-                           int flushPeriodInMs) {
+                           const CProxy_MeshStreamerClient &clientProxy) {
    
   payloadSize_ = payloadSize; 
   // limit total number of messages in system to totalBufferCapacity
@@ -26,7 +25,6 @@ MeshStreamer::MeshStreamer(int payloadSize, int totalBufferCapacity, int numRows
   numNodes_ = CkNumNodes(); 
   numPesPerNode_ = numPesPerNode;
   clientProxy_ = clientProxy; 
-  flushPeriod_ = flushPeriodInMs;
 
   personalizedBuffers_ = new MeshStreamerMessage*[numRows];
   for (int i = 0; i < numRows; i++) {
@@ -270,51 +268,7 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   delete msg; 
 }
 
-void MeshStreamer::flushLargestBucket(MeshStreamerMessage **messageBuffers,
-                                      const int numBuffers, const int myIndex, 
-                                      const int dimensionFactor) {
-
-  int flushIndex, maxSize, destinationIndex;
-  MeshStreamerMessage *destinationBucket; 
-  maxSize = 0;
-  for (int i = 0; i < numBuffers; i++) {
-    if (messageBuffers[i] != NULL && messageBuffers[i]->numElements > maxSize) {
-      maxSize = messageBuffers[i]->numElements;
-      flushIndex = i;
-    } 
-  }
-  if (maxSize > 0) {
-    destinationBucket = messageBuffers[flushIndex];
-    destinationIndex = myNodeIndex_ + (flushIndex - myIndex) * dimensionFactor;
-    thisProxy[destinationIndex].receivePersonalizedData(destinationBucket);
-    messageBuffers[flushIndex] = NULL;
-  }
-
-}
-
-void MeshStreamer::flush() {
-
-  // find and send out the largest personalized, column, and plane buffers
-  flushLargestBucket(personalizedBuffers_, numRows_, myRowIndex_, numColumns_);
-  flushLargestBucket(columnBuffers_, numColumns_, myColumnIndex_, 1);
-  flushLargestBucket(planeBuffers_, numPlanes_, myPlaneIndex_, planeSize_);
-  
-}
-
-void MeshStreamer::flushStart() {
-  thisProxy[CkMyNode()].flush();
-}
-
-void periodicFlushHandler(void *streamer, double time) {
-  ((MeshStreamer *) streamer)->flushStart();
-  ((MeshStreamer *) streamer)->registerPeriodicFlush();
-}
-
-void MeshStreamer::registerPeriodicFlush() {
-  CcdCallFnAfter(periodicFlushHandler, (void *) this, flushPeriod_);
-}
-
-void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuffers, int &cnt)
+void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuffers)
 {
     MeshStreamerMessage *msg;
     for (int i = 0; i < numBuffers; i++) {
@@ -328,21 +282,15 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
            void *dataFragment = msg->getFragment(j);   
            localMsgs->addData(dataFragment);
            clientProxy_[destinationPe].receiveCombinedData(localMsgs);
-           cnt++;
        }
        messageBuffers[i] = NULL;
     }
 }
 
-void MeshStreamer::flushDirect()
-{   int cnt=0;
-    flushBuckets(planeBuffers_, numPlanes_, cnt);
-    flushBuckets(columnBuffers_, numColumns_, cnt);
-    flushBuckets(personalizedBuffers_, numRows_, cnt);
-}
-
-void MeshStreamer::flushAll() {
-  thisProxy[CkMyNode()].flushDirect();
+void MeshStreamer::flushDirect(){
+    flushBuckets(planeBuffers_, numPlanes_);
+    flushBuckets(columnBuffers_, numColumns_);
+    flushBuckets(personalizedBuffers_, numRows_);
 }
 
 #include "MeshStreamer.def.h"
