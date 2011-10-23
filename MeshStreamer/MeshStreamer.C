@@ -192,7 +192,7 @@ void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
 
   for (int i = 0; i < msg->numDataItems; i++) {
     destinationPe = msg->destinationPes[i];
-    void *dataFragment = msg->getFragment(i);
+    void *dataItem = msg->getDataItem(i);
     determineLocation(destinationPe, rowIndex, columnIndex, 
                       planeIndex, msgType);
 #ifdef DEBUG_STREAMER
@@ -221,7 +221,7 @@ void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
     }
 
     storeMessage(messageBuffers, bucketIndex, destinationPe, rowIndex, 
-                 columnIndex, planeIndex, msgType, dataFragment);
+                 columnIndex, planeIndex, msgType, dataItem);
     
   }
 
@@ -231,7 +231,7 @@ void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
 
 void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   
-  // sort fragments into messages for each core on this node
+  // sort data items into messages for each core on this node
 
   LocalMessage *localMsgs[numPesPerNode_];
   int dataSize = bucketSize_ * dataItemSize_;
@@ -244,8 +244,8 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   for (int i = 0; i < msg->numDataItems; i++) {
 
     destinationPe = msg->destinationPes[i]; 
-    void *dataFragment = msg->getFragment(i);   
-    localMsgs[destinationPe % numPesPerNode_]->addData(dataFragment);
+    void *dataItem = msg->getDataItem(i);   
+    localMsgs[destinationPe % numPesPerNode_]->addData(dataItem);
 
   }
 
@@ -272,8 +272,8 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
        for (int j = 0; j < msg->numDataItems; j++) {
            LocalMessage *localMsgs = new (dataItemSize_) LocalMessage(dataItemSize_);
            int destinationPe = msg->destinationPes[j]; 
-           void *dataFragment = msg->getFragment(j);   
-           localMsgs->addData(dataFragment);
+           void *dataItem = msg->getDataItem(j);   
+           localMsgs->addData(dataItem);
            clientProxy_[destinationPe].receiveCombinedData(localMsgs);
        }
        messageBuffers[i] = NULL;

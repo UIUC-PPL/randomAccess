@@ -21,7 +21,7 @@ public:
         return ++numDataItems; 
     } 
 
-    void *getFragment(int index) {
+    void *getDataItem(int index) {
         return (void *) (&data[index * dataItemSize]);  
     }
 
@@ -45,7 +45,7 @@ public:
         return ++numDataItems; 
     }
 
-    void *getFragment(int index) {
+    void *getDataItem(int index) {
         return (void *) (&data[index * dataItemSize]);  
     }
 };
