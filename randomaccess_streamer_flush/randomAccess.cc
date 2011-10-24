@@ -14,7 +14,6 @@
 
 #define DATA_ITEM_SIZE 8
 #define NUM_MESSAGES_BUFFERED 1024
-#define FLUSH_PERIOD_IN_MS 10
 
 CProxy_Main     mainProxy;
 int             N;                  //log local table size    
@@ -41,8 +40,6 @@ public:
         NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
         NUM_COLUMNS = tmgr.getDimNY();
         NUM_PLANES = tmgr.getDimNZ();
-        CkPrintf("Running on NX %d NY %d NZ %d cores_per_node %d\n",NUM_ROWS,NUM_COLUMNS,NUM_PLANES,NUM_PES_PER_NODE);
-
         delete args;
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
@@ -50,23 +47,24 @@ public:
         CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
-        //initialize the global table 
+        // Create the chares storing and updating the global table
         updater_array   = CProxy_Updater::ckNew();
+        //Create Mesh Streamer instance
         aggregator = CProxy_MeshStreamer::ckNew(DATA_ITEM_SIZE, NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, updater_array);
     }
-    // start RandomAccess
-    void start(CkReductionMsg *msg)
-    {
-        delete msg;
+    void start() {
         starttime = CkWallTimer();
+        // Give the updater chares the 'go' signal
         updater_array.generateUpdates();
-        CkStartQD(CkCallback(CkIndex_Main::startFlush(), mainProxy));
+        // Ask for notification when the updates are all done, notify Mesh Streamer 
+        // to flush all the messages in the buffer
+        CkStartQD(CkCallback(CkIndex_Main::startFlush(), thisProxy));
     }
     //flush the messages that sit in the mesh streamer buffer
     void startFlush()
     {
         aggregator.flushDirect();
-        CkStartQD(CkCallback(CkIndex_Main::allUpdatesDone(), mainProxy));
+        CkStartQD(CkCallback(CkIndex_Main::allUpdatesDone(), thisProxy));
     }
     void allUpdatesDone()
     {
@@ -76,9 +74,10 @@ public:
         CkPrintf( "CPU time used = %.6f seconds\n", update_walltime );
         CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
         CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
-        // repeat the update to verify 
+        // Repeat the update process to verify
         updater_array.generateUpdates();
-        CkStartQD(CkCallback(CkIndex_Main::startFlushVerify(), mainProxy));
+        // After verification is done,  flush Mesh Streamer messages
+        CkStartQD(CkCallback(CkIndex_Main::startFlushVerify(), thisProxy));
     }
     
     void startFlushVerify()
@@ -87,12 +86,9 @@ public:
         CkStartQD(CkCallback(CkIndex_Updater::checkErrors(), updater_array));
     }
 
-    void verifyDone(CkReductionMsg *msg) 
-    {
-        CmiInt8 GlbnumErrors = *(CmiInt8*)msg->getData();
-        CkPrintf(  "Found %lld errors in %lld locations (%s).\n", GlbnumErrors, 
-            tableSize, (GlbnumErrors <= 0.01*tableSize) ? "passed" : "failed");
-        delete msg;
+    void verifyDone(CmiInt8 globalNumErrors) {
+        CkPrintf(  "Found %lld errors in %lld locations (%s).\n", globalNumErrors, 
+            tableSize, (globalNumErrors <= 0.01*tableSize) ? "passed" : "failed");
         CkExit();
     }
 };
@@ -107,10 +103,9 @@ public:
         HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
         for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
-        contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
+        contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
     }
 
-    Updater(CkMigrateMessage* m) {}
     void generateUpdates()
     {
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
@@ -148,7 +143,8 @@ public:
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
                 numErrors++;
-        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
+        // Sum the errors observed across the entire system
+        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkReductionTarget(Main,verifyDone), mainProxy));
     }
 };
 
