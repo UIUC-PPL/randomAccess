@@ -262,7 +262,7 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
 
 void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuffers)
 {
-    MeshStreamerMessage *msg;
+
     for (int i = 0; i < numBuffers; i++) {
        if(messageBuffers[i] == NULL)
            continue;
@@ -272,11 +272,11 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
          clientProxy_[destinationPe].receiveCombinedData(messageBuffers[i]);
        }
        else {
-         for (int j = 0; j < msg->numDataItems; j++) {
+         for (int j = 0; j < messageBuffers[i]->numDataItems; j++) {
            MeshStreamerMessage *directMsg = 
              new (0, dataItemSize_) MeshStreamerMessage(dataItemSize_);
-           int destinationPe = msg->destinationPes[j]; 
-           void *dataItem = msg->getDataItem(j);   
+           int destinationPe = messageBuffers[i]->destinationPes[j]; 
+           void *dataItem = messageBuffers[i]->getDataItem(j);   
            directMsg->addDataItem(dataItem);
            clientProxy_[destinationPe].receiveCombinedData(directMsg);
          }
