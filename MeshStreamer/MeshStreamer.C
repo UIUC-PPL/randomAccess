@@ -327,8 +327,13 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
            clientProxy_[destinationPe].receiveCombinedData(directMsg);
          }
        }
+       numDataItemsBuffered_ -= messageBuffers[i]->numDataItems;
        messageBuffers[i] = NULL;
     }
+
+#ifdef DEBUG_STREAMER
+    CkAssert(numDataItemsBuffered_ == 0); 
+#endif
 }
 
 void MeshStreamer::flushDirect(){
