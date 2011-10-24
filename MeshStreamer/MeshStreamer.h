@@ -46,7 +46,7 @@ public:
         return ++numDataItems; 
     }
 
-    int markDestination(int index, int destinationPe) {
+    void markDestination(int index, int destinationPe) {
 	destinationPes[index] = destinationPe;
     }
 
