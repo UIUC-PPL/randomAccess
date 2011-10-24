@@ -48,23 +48,14 @@ MeshStreamer::MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRow
 
 MeshStreamer::~MeshStreamer() {
 
-  for (int i = 0; i < numRows_; i++) {
-    if (personalizedBuffers_[i] != NULL) {
+  for (int i = 0; i < numRows_; i++)
       delete personalizedBuffers_[i]; 
-    }
-  }
 
-  for (int i = 0; i < numColumns_; i++) {
-    if (columnBuffers_[i] != NULL) {
+  for (int i = 0; i < numColumns_; i++)
       delete columnBuffers_[i]; 
-    }
-  }
 
-  for (int i = 0; i < numPlanes_; i++) {
-    if (planeBuffers_[i] != NULL) {
+  for (int i = 0; i < numPlanes_; i++)
       delete planeBuffers_[i]; 
-    } 
-  }
 
   delete[] personalizedBuffers_;
   delete[] columnBuffers_;

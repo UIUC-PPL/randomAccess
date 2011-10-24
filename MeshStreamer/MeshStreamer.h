@@ -17,7 +17,7 @@ public:
     }
 
     int addDataItem(void *dataItem) {
-        memcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
+        CmiMemcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
         return ++numDataItems; 
     } 
 
@@ -40,7 +40,7 @@ public:
     }
 
     int addDataItem(void *dataItem, int destinationPe) {
-        memcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
+        CmiMemcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
         destinationPes[numDataItems] = destinationPe;
         return ++numDataItems; 
     }
