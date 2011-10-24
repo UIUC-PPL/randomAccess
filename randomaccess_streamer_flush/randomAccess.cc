@@ -130,7 +130,8 @@ public:
                 //sending messages out and receive message to apply the update table
                 //MeshStreamerMessage *msg = new (1, DATA_ITEM_SIZE) MeshStreamerMessage(DATA_ITEM_SIZE);
                 //msg->addDataItem((void *) &ran, tableIndex);
-                aggregator[CkMyNode()].insertData(ran, tableIndex);      
+                //aggregator[CkMyNode()].insertData(ran, tableIndex);      
+                ((MeshStreamer *)CkLocalNodeBranch(aggregator))->insertData(ran, tableIndex);
                 if(i%1024 == 0) CthYield();   
             }
         }
