@@ -26,7 +26,6 @@ CmiUInt8 HPCC_starts(CmiInt8 n);
 
 class Main : public CBase_Main {
 private:
-    CkChareID mainhandle;
     CProxy_Updater  updater_array;
     double starttime;
 public:
@@ -51,7 +50,7 @@ public:
         CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
-        mainhandle = thishandle;  
+        //mainhandle = thishandle;  
         //initialize the global table 
         updater_array   = CProxy_Updater::ckNew();
         aggregator = CProxy_MeshStreamer::ckNew(DATA_ITEM_SIZE, NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, NUM_PES_PER_NODE, updater_array);
@@ -62,13 +61,13 @@ public:
         delete msg;
         starttime = CkWallTimer();
         updater_array.generateUpdates();
-        CkStartQD(CkIndex_Main::startFlush(), &mainhandle);
+        CkStartQD(CkCallback(CkIndex_Main::startFlush(), mainProxy));
     }
     //flush the messages that sit in the mesh streamer buffer
     void startFlush()
     {
         aggregator.flushDirect();
-        CkStartQD(CkIndex_Main::allUpdatesDone(), &mainhandle);
+        CkStartQD(CkCallback(CkIndex_Main::allUpdatesDone(), mainProxy));
     }
     void allUpdatesDone()
     {
@@ -80,7 +79,7 @@ public:
         CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
         // repeat the update to verify 
         updater_array.generateUpdates();
-        CkStartQD(CkIndex_Main::startFlushVerify(), &mainhandle);
+        CkStartQD(CkCallback(CkIndex_Main::startFlushVerify(), mainProxy));
     }
     
     void startFlushVerify()
