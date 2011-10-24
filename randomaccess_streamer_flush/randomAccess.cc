@@ -126,7 +126,7 @@ public:
             }
             else {
                 //sending messages out and receive message to apply the update table
-                ((MeshStreamer *)CkLocalBranch(aggregator))->insertData(ran, tableIndex);
+                ((MeshStreamer *)CkLocalBranch(aggregator))->insertData(&ran, tableIndex);
                 if(i%1024 == 0) CthYield();   
             }
         }

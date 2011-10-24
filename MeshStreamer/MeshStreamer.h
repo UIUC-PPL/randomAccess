@@ -101,7 +101,7 @@ public:
 
     ~MeshStreamer();
 
-    void insertData(CmiUInt8, int); 
+    void insertData(void *, int); 
     void receiveAggregateData(MeshStreamerMessage *msg);
     void receivePersonalizedData(MeshStreamerMessage *msg);
 

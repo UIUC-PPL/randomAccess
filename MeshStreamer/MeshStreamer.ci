@@ -21,9 +21,9 @@ module MeshStreamer {
 		       int numColumns, int numPlanes, 
 		       const CProxy_MeshStreamerClient &clientProxy );   
 
-    entry void insertData(CmiUInt8, int); 
+    // entry void insertData(CmiUInt8, int); 
     entry void receiveAggregateData(MeshStreamerMessage *msg);
-    //    entry void receivePersonalizedData(MeshStreamerMessage *msg);
+    // entry void receivePersonalizedData(MeshStreamerMessage *msg);
     entry void flushDirect();
   };
 
