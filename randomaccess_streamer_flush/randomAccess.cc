@@ -50,7 +50,6 @@ public:
         CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
-        //mainhandle = thishandle;  
         //initialize the global table 
         updater_array   = CProxy_Updater::ckNew();
         aggregator = CProxy_MeshStreamer::ckNew(DATA_ITEM_SIZE, NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, NUM_PES_PER_NODE, updater_array);
@@ -127,9 +126,6 @@ public:
             }
             else {
                 //sending messages out and receive message to apply the update table
-                //MeshStreamerMessage *msg = new (1, DATA_ITEM_SIZE) MeshStreamerMessage(DATA_ITEM_SIZE);
-                //msg->addDataItem((void *) &ran, tableIndex);
-                //aggregator[CkMyNode()].insertData(ran, tableIndex);      
                 ((MeshStreamer *)CkLocalNodeBranch(aggregator))->insertData(ran, tableIndex);
                 if(i%1024 == 0) CthYield();   
             }
