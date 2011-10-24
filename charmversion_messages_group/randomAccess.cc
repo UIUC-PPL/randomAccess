@@ -33,18 +33,20 @@ public:
         CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
-        //initialize the global table 
+        // Create the chares storing and updating the global table
         updater_array   = CProxy_Updater::ckNew();
     }
+
     void start(CkReductionMsg *msg)
     {
-        // start updating
         delete msg;
         starttime = CkWallTimer();
+        // Give the updater chares the 'go' signal
         updater_array.generateUpdates();
-        //when the updating is done, allUpdatesDone function is called
+        // Ask for notification when the updates are all done
         CkStartQD(CkCallback(CkIndex_Main::allUpdatesDone(), thisProxy));
     }
+
     void allUpdatesDone()
     {
         double update_walltime = CkWallTimer() - starttime;
@@ -53,9 +55,9 @@ public:
         CkPrintf( "CPU time used = %.6f seconds\n", update_walltime );
         CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
         CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
-        // repeat the update to verify 
+        // Repeat the update process to verify
         updater_array.generateUpdates();
-        //After verification is done, check errors 
+        // After verification is done, check for errors
         CkStartQD(CkCallback(CkIndex_Updater::checkErrors(), updater_array));
     }
 
@@ -109,6 +111,8 @@ public:
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
                 numErrors++;
+
+        // Sum the errors observed across the entire system
         contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkReductionTarget(Main,verifyDone), mainProxy));
     }
 };
