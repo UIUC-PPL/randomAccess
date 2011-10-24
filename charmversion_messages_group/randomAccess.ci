@@ -14,7 +14,7 @@ mainmodule randomAccess {
     group Updater {
         entry Updater();
         entry [threaded] void generateUpdates();
-        entry void updateLocalTable(CmiUInt8); 
+        entry [expedited] void updateLocalTable(CmiUInt8); 
         entry void checkErrors();
     };
 };
