@@ -26,9 +26,7 @@ private:
 public:
     Main(CkArgMsg* args) 
     {
-        N = 25;
-        if(args->argc>1)
-            N = atoi(args->argv[1]);
+        N = atoi(args->argv[1]);
         delete args;
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
