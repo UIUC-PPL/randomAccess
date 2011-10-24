@@ -6,7 +6,7 @@ mainmodule randomAccess {
     
   mainchare Main {
     entry Main (CkArgMsg*);
-    entry void start(CkReductionMsg*);
+    entry [reductiontarget] void start();
     entry void allUpdatesDone();
     entry [reductiontarget] void verifyDone(CmiInt8);
   };

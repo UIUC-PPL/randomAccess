@@ -36,8 +36,7 @@ public:
     updater_array   = CProxy_Updater::ckNew();
   }
 
-  void start(CkReductionMsg *msg) {
-    delete msg;
+  void start() {
     starttime = CkWallTimer();
     // Give the updater chares the 'go' signal
     updater_array.generateUpdates();
@@ -75,7 +74,7 @@ public:
     HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
     for(CmiInt8 i=0; i<localTableSize; i++)
       HPCC_Table[i] = i + globalStartmyProc;
-    contribute(CkCallback(CkIndex_Main::start(NULL), mainProxy)); 
+    contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
   }
   void generateUpdates() {
     CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
