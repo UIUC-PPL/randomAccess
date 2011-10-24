@@ -98,7 +98,8 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
   if (messageBuffers[bucketIndex] == NULL) {
     int dataSize = bucketSize_ * dataItemSize_;  
     if (msgType == PersonalizedMessage) {
-      new (0, dataSize) MeshStreamerMessage(dataItemSize_);
+      messageBuffers[bucketIndex] = 
+        new (0, dataSize) MeshStreamerMessage(dataItemSize_);
     }
     else {
       messageBuffers[bucketIndex] = 
@@ -110,9 +111,14 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
   }
   
   MeshStreamerMessage *destinationBucket = messageBuffers[bucketIndex];
+  
+  int numBuffered = destinationBucket->addDataItem(data); 
+  if (msgType != PersonalizedMessage) {
+    destinationBucket->markDestination(numBuffered-1, destinationPe);
+  }
 
   // copy data into message and send if buffer is full
-  if (destinationBucket->addDataItem(data, destinationPe) == bucketSize_) {
+  if (numBuffered == bucketSize_) {
 
     int destinationIndex;
     switch (msgType) {
@@ -261,13 +267,19 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
        if(messageBuffers[i] == NULL)
            continue;
        //flush all messages in i bucket
-       for (int j = 0; j < msg->numDataItems; j++) {
-         MeshStreamerMessage *directMsg = 
-           new (0, dataItemSize_) MeshStreamerMessage(dataItemSize_);
-         int destinationPe = msg->destinationPes[j]; 
-         void *dataItem = msg->getDataItem(j);   
-         directMsg->addDataItem(dataItem);
-         clientProxy_[destinationPe].receiveCombinedData(directMsg);
+       if (messageBuffers == personalizedBuffers_) {
+         int destinationPe = myNodeIndex_ + (i - myRowIndex_) * numColumns_; 
+         clientProxy_[destinationPe].receiveCombinedData(messageBuffers[i]);
+       }
+       else {
+         for (int j = 0; j < msg->numDataItems; j++) {
+           MeshStreamerMessage *directMsg = 
+             new (0, dataItemSize_) MeshStreamerMessage(dataItemSize_);
+           int destinationPe = msg->destinationPes[j]; 
+           void *dataItem = msg->getDataItem(j);   
+           directMsg->addDataItem(dataItem);
+           clientProxy_[destinationPe].receiveCombinedData(directMsg);
+         }
        }
        messageBuffers[i] = NULL;
     }

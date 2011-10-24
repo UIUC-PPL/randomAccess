@@ -41,12 +41,13 @@ public:
         dataItemSize = dataItemSizeInBytes;
     }
 
-    int addDataItem(void *dataItem, int destinationPe = -1) {
-        CmiMemcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
-	if (destinationPe != -1) {
-	  destinationPes[numDataItems] = destinationPe;
-	}
+    int addDataItem(void *dataItem) {
+        CmiMemcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);	
         return ++numDataItems; 
+    }
+
+    int markDestination(int index, int destinationPe) {
+	destinationPes[index] = destinationPe;
     }
 
     void *getDataItem(int index) {
