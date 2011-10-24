@@ -67,6 +67,8 @@ class MeshStreamer : public CBase_MeshStreamer {
 private:
     int dataItemSize_;
     int bucketSize_; 
+    int totalBufferCapacity_;
+    int numDataItemsBuffered_;
 
     int numNodes_; 
     int numRows_; 
@@ -93,6 +95,10 @@ private:
         const int rowIndex, const int columnIndex, 
         const int planeIndex,
         const MeshStreamerMessageType msgType, void *data);
+
+    void flushLargestBucket(MeshStreamerMessage **messageBuffers,
+			    const int numBuffers, const int myIndex, 
+			    const int dimensionFactor);
 public:
 
     MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRows, 

@@ -1,5 +1,9 @@
 #include "MeshStreamer.h"
 
+// allocate more total buffer space then the maximum buffering limit but flush upon
+// reaching totalBufferCapacity_
+#define BUCKET_SIZE_FACTOR 4
+
 MeshStreamerClient::MeshStreamerClient() {}
 
 void MeshStreamerClient::receiveCombinedData(MeshStreamerMessage *msg) {
@@ -13,8 +17,12 @@ MeshStreamer::MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRow
    
   dataItemSize_ = dataItemSize; 
   // limit total number of messages in system to totalBufferCapacity
+  //   but allocate a factor BUCKET_SIZE_FACTOR more space to take
+  //   advantage of nonuniform filling of buckets
   // the buffers for your own column and plane are never used
-  bucketSize_ = totalBufferCapacity / (numRows + numColumns + numPlanes - 2); 
+  bucketSize_ = BUCKET_SIZE_FACTOR * totalBufferCapacity / (numRows + numColumns + numPlanes - 2); 
+  totalBufferCapacity_ = totalBufferCapacity;
+  numDataItemsBuffered_ = 0; 
   numRows_ = numRows; 
   numColumns_ = numColumns;
   numPlanes_ = numPlanes; 
@@ -43,6 +51,7 @@ MeshStreamer::MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRow
   int indexWithinPlane = myNodeIndex_ - myPlaneIndex_ * planeSize_;
   myRowIndex_ = indexWithinPlane / numColumns_;
   myColumnIndex_ = indexWithinPlane - myRowIndex_ * numColumns_; 
+
 }
 
 MeshStreamer::~MeshStreamer() {
@@ -116,7 +125,7 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
   if (msgType != PersonalizedMessage) {
     destinationBucket->markDestination(numBuffered-1, destinationPe);
   }
-
+  numDataItemsBuffered_++;
   // copy data into message and send if buffer is full
   if (numBuffered == bucketSize_) {
 
@@ -134,7 +143,7 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
       break;
     case PersonalizedMessage:
       destinationIndex = myNodeIndex_ + (rowIndex - myRowIndex_) * numColumns_;
-      clientProxy_[myNodeIndex_].receiveCombinedData(destinationBucket);      
+      clientProxy_[destinationIndex].receiveCombinedData(destinationBucket);      
       //      thisProxy[destinationIndex].receivePersonalizedData(destinationBucket);
       break;
     default: 
@@ -142,6 +151,15 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
       break;
     }
     messageBuffers[bucketIndex] = NULL;
+    numDataItemsBuffered_ -= numBuffered; 
+  }
+
+  if (numDataItemsBuffered_ == totalBufferCapacity_) {
+
+    flushLargestBucket(personalizedBuffers_, numRows_, myRowIndex_, numColumns_);
+    flushLargestBucket(columnBuffers_, numColumns_, myColumnIndex_, 1);
+    flushLargestBucket(planeBuffers_, numPlanes_, myPlaneIndex_, planeSize_);
+
   }
 
 }
@@ -259,6 +277,34 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
 
 }
 */
+
+void MeshStreamer::flushLargestBucket(MeshStreamerMessage **messageBuffers,
+                                      const int numBuffers, const int myIndex, 
+                                      const int dimensionFactor) {
+
+  int flushIndex, maxSize, destinationIndex;
+  MeshStreamerMessage *destinationBucket; 
+  maxSize = 0;
+  for (int i = 0; i < numBuffers; i++) {
+    if (messageBuffers[i] != NULL && messageBuffers[i]->numDataItems > maxSize) {
+      maxSize = messageBuffers[i]->numDataItems;
+      flushIndex = i;
+    } 
+  }
+  if (maxSize > 0) {
+    destinationBucket = messageBuffers[flushIndex];
+    destinationIndex = myNodeIndex_ + (flushIndex - myIndex) * dimensionFactor;
+    if (messageBuffers == personalizedBuffers_) {
+      clientProxy_[destinationIndex].receiveCombinedData(destinationBucket);
+    }
+    else {
+      thisProxy[destinationIndex].receiveAggregateData(destinationBucket);
+    }
+    numDataItemsBuffered_ -= destinationBucket->numDataItems;
+    messageBuffers[flushIndex] = NULL;
+  }
+
+}
 
 void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuffers)
 {
