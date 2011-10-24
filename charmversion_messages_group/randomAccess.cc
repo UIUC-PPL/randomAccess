@@ -58,13 +58,11 @@ public:
         //After verification is done, check errors 
         CkStartQD(CkCallback(CkIndex_Updater::checkErrors(), updater_array));
     }
-    
-    void verifyDone(CkReductionMsg *msg) 
+
+    void verifyDone(CmiInt8 globalNumErrors)
     {
-        CmiInt8 GlbnumErrors = *(CmiInt8*)msg->getData();
-        CkPrintf(  "Found %lld errors in %lld locations (%s).\n", GlbnumErrors, 
-            tableSize, (GlbnumErrors <= 0.01*tableSize) ? "passed" : "failed");
-        delete msg;
+        CkPrintf("Found %lld errors in %lld locations (%s).\n", globalNumErrors,
+                 tableSize, (globalNumErrors <= 0.01*tableSize) ? "passed" : "failed");
         CkExit();
     }
 };
@@ -111,7 +109,7 @@ public:
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
                 numErrors++;
-        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkIndex_Main::verifyDone(NULL), mainProxy)); 
+        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkReductionTarget(Main,verifyDone), mainProxy));
     }
 };
 
