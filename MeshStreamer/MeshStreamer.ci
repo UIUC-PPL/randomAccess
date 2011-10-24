@@ -4,28 +4,27 @@ module MeshStreamer {
     int destinationPes[];
     char data[]; 
   };
-
+  /*
   message LocalMessage {
     char data[]; 
   };
-
+  */
   group MeshStreamerClient {
 
     entry MeshStreamerClient();
-    entry void receiveCombinedData(LocalMessage *msg);
+    entry void receiveCombinedData(MeshStreamerMessage *msg);
   };
 
-  nodegroup MeshStreamer {
+  group MeshStreamer {
 
     entry MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRows, 
-		       int numColumns, int numPlanes, int numPesPerNode,
+		       int numColumns, int numPlanes, 
 		       const CProxy_MeshStreamerClient &clientProxy );   
 
-
-    entry [exclusive] void insertData(CmiUInt8, int); 
-    entry [exclusive] void receiveAggregateData(MeshStreamerMessage *msg);
-    entry [exclusive] void receivePersonalizedData(MeshStreamerMessage *msg);
-    entry [exclusive] void flushDirect();
+    entry void insertData(CmiUInt8, int); 
+    entry void receiveAggregateData(MeshStreamerMessage *msg);
+    //    entry void receivePersonalizedData(MeshStreamerMessage *msg);
+    entry void flushDirect();
   };
 
 };

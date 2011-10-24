@@ -5,6 +5,7 @@
 
 enum MeshStreamerMessageType {PlaneMessage, ColumnMessage, PersonalizedMessage};
 
+/*
 class LocalMessage : public CMessage_LocalMessage {
 public:
     int numDataItems; 
@@ -26,6 +27,7 @@ public:
     }
 
 };
+*/
 
 class MeshStreamerMessage : public CMessage_MeshStreamerMessage {
 public:
@@ -39,9 +41,11 @@ public:
         dataItemSize = dataItemSizeInBytes;
     }
 
-    int addDataItem(void *dataItem, int destinationPe) {
+    int addDataItem(void *dataItem, int destinationPe = -1) {
         CmiMemcpy(&data[numDataItems * dataItemSize], dataItem, dataItemSize);
-        destinationPes[numDataItems] = destinationPe;
+	if (destinationPe != -1) {
+	  destinationPes[numDataItems] = destinationPe;
+	}
         return ++numDataItems; 
     }
 
@@ -53,7 +57,7 @@ public:
 class MeshStreamerClient : public CBase_MeshStreamerClient {
  public:
      MeshStreamerClient();
-     virtual void receiveCombinedData(LocalMessage *msg);
+     virtual void receiveCombinedData(MeshStreamerMessage *msg);
 
 };
 
@@ -68,7 +72,6 @@ private:
     int numColumns_; 
     int numPlanes_; 
     int planeSize_;
-    int numPesPerNode_;
 
     CProxy_MeshStreamerClient clientProxy_;
 
@@ -92,8 +95,8 @@ private:
 public:
 
     MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRows, 
-        int numColumns, int numPlanes, int numPesPerNode,
-        const CProxy_MeshStreamerClient &clientProxy);
+		 int numColumns, int numPlanes, 
+		 const CProxy_MeshStreamerClient &clientProxy);
 
     ~MeshStreamer();
 

@@ -2,13 +2,13 @@
 
 MeshStreamerClient::MeshStreamerClient() {}
 
-void MeshStreamerClient::receiveCombinedData(LocalMessage *msg) {
+void MeshStreamerClient::receiveCombinedData(MeshStreamerMessage *msg) {
   CkError("Default implementation of receiveCombinedData should never be called\n");
   delete msg;
 }
 
 MeshStreamer::MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRows, 
-                           int numColumns, int numPlanes, int numPesPerNode,
+                           int numColumns, int numPlanes, 
                            const CProxy_MeshStreamerClient &clientProxy) {
    
   dataItemSize_ = dataItemSize; 
@@ -18,8 +18,7 @@ MeshStreamer::MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRow
   numRows_ = numRows; 
   numColumns_ = numColumns;
   numPlanes_ = numPlanes; 
-  numNodes_ = CkNumNodes(); 
-  numPesPerNode_ = numPesPerNode;
+  numNodes_ = CkNumPes(); 
   clientProxy_ = clientProxy; 
 
   personalizedBuffers_ = new MeshStreamerMessage*[numRows];
@@ -38,7 +37,7 @@ MeshStreamer::MeshStreamer(int dataItemSize, int totalBufferCapacity, int numRow
   }
 
   // determine plane, column, and row location of this node
-  myNodeIndex_ = CkMyNode();
+  myNodeIndex_ = CkMyPe();
   planeSize_ = numRows_ * numColumns_; 
   myPlaneIndex_ = myNodeIndex_ / planeSize_; 
   int indexWithinPlane = myNodeIndex_ - myPlaneIndex_ * planeSize_;
@@ -69,7 +68,7 @@ void MeshStreamer::determineLocation(const int destinationPe, int &rowIndex,
   
   int nodeIndex, indexWithinPlane; 
 
-  nodeIndex = destinationPe / numPesPerNode_;
+  nodeIndex = destinationPe;
   planeIndex = nodeIndex / planeSize_; 
   if (planeIndex != myPlaneIndex_) {
     msgType = PlaneMessage;     
@@ -98,8 +97,13 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
   // allocate new message if necessary
   if (messageBuffers[bucketIndex] == NULL) {
     int dataSize = bucketSize_ * dataItemSize_;  
-    messageBuffers[bucketIndex] = 
-      new (bucketSize_, dataSize) MeshStreamerMessage(dataItemSize_);
+    if (msgType == PersonalizedMessage) {
+      new (0, dataSize) MeshStreamerMessage(dataItemSize_);
+    }
+    else {
+      messageBuffers[bucketIndex] = 
+        new (bucketSize_, dataSize) MeshStreamerMessage(dataItemSize_);
+    }
 #ifdef DEBUG_STREAMER
     CkAssert(messageBuffers[bucketIndex] != NULL);
 #endif
@@ -124,7 +128,8 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
       break;
     case PersonalizedMessage:
       destinationIndex = myNodeIndex_ + (rowIndex - myRowIndex_) * numColumns_;
-      thisProxy[destinationIndex].receivePersonalizedData(destinationBucket);
+      clientProxy_[myNodeIndex_].receiveCombinedData(destinationBucket);      
+      //      thisProxy[destinationIndex].receivePersonalizedData(destinationBucket);
       break;
     default: 
       CkError("Incorrect MeshStreamer message type\n");
@@ -214,8 +219,9 @@ void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
 
 }
 
+/*
 void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
-  
+
   // sort data items into messages for each core on this node
 
   LocalMessage *localMsgs[numPesPerNode_];
@@ -244,7 +250,9 @@ void MeshStreamer::receivePersonalizedData(MeshStreamerMessage *msg) {
   }
 
   delete msg; 
+
 }
+*/
 
 void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuffers)
 {
@@ -253,13 +261,13 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
        if(messageBuffers[i] == NULL)
            continue;
        //flush all messages in i bucket
-       msg = messageBuffers[i];
        for (int j = 0; j < msg->numDataItems; j++) {
-           LocalMessage *localMsgs = new (dataItemSize_) LocalMessage(dataItemSize_);
-           int destinationPe = msg->destinationPes[j]; 
-           void *dataItem = msg->getDataItem(j);   
-           localMsgs->addDataItem(dataItem);
-           clientProxy_[destinationPe].receiveCombinedData(localMsgs);
+         MeshStreamerMessage *directMsg = 
+           new (0, dataItemSize_) MeshStreamerMessage(dataItemSize_);
+         int destinationPe = msg->destinationPes[j]; 
+         void *dataItem = msg->getDataItem(j);   
+         directMsg->addDataItem(dataItem);
+         clientProxy_[destinationPe].receiveCombinedData(directMsg);
        }
        messageBuffers[i] = NULL;
     }
