@@ -144,15 +144,12 @@ void MeshStreamer::storeMessage(MeshStreamerMessage **messageBuffers,
 
 }
 
-void MeshStreamer::insertData(MeshStreamerMessage *msg) {
+void MeshStreamer::insertData(CmiUInt8 data, int destinationPe) {
 
   int planeIndex, columnIndex, rowIndex; // location of destination
   int indexWithinPlane; 
 
   MeshStreamerMessageType msgType; 
-
-  void *data = msg->data;
-  int destinationPe = msg->destinationPes[0];
 
   determineLocation(destinationPe, rowIndex, columnIndex, planeIndex, msgType);
 
@@ -179,10 +176,7 @@ void MeshStreamer::insertData(MeshStreamerMessage *msg) {
   }
 
   storeMessage(messageBuffers, bucketIndex, destinationPe, rowIndex, 
-               columnIndex, planeIndex, msgType, data);
-
-
-  delete msg; 
+               columnIndex, planeIndex, msgType, (void*) &data);
 }
 
 void MeshStreamer::receiveAggregateData(MeshStreamerMessage *msg) {
