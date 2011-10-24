@@ -1,20 +1,20 @@
 mainmodule randomAccess {
-    readonly CProxy_Main    mainProxy;
-    readonly int            N;
-    readonly CmiInt8        localTableSize;
-    readonly CmiInt8        tableSize;
+  readonly CProxy_Main    mainProxy;
+  readonly int            N;
+  readonly CmiInt8        localTableSize;
+  readonly CmiInt8        tableSize;
     
-    mainchare Main {
-        entry Main (CkArgMsg*);
-        entry void start(CkReductionMsg*);
-        entry void allUpdatesDone();
-        entry [reductiontarget] void verifyDone(CmiInt8);
-    };
-    
-    group Updater {
-        entry Updater();
-        entry [threaded] void generateUpdates();
-        entry [expedited] void updateLocalTable(CmiUInt8); 
-        entry void checkErrors();
-    };
+  mainchare Main {
+    entry Main (CkArgMsg*);
+    entry void start(CkReductionMsg*);
+    entry void allUpdatesDone();
+    entry [reductiontarget] void verifyDone(CmiInt8);
+  };
+
+  group Updater {
+    entry Updater();
+    entry [threaded] void generateUpdates();
+    entry [expedited] void updateLocalTable(CmiUInt8); 
+    entry void checkErrors();
+  };
 };
