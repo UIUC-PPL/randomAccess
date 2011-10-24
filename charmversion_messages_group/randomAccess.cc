@@ -20,7 +20,6 @@ CmiUInt8 HPCC_starts(CmiInt8 n);
 
 class Main : public CBase_Main {
 private:
-    CkChareID   mainhandle;
     CProxy_Updater  updater_array;
     double      starttime;
 public:
@@ -34,7 +33,6 @@ public:
         CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
-        mainhandle = thishandle;  
         //initialize the global table 
         updater_array   = CProxy_Updater::ckNew();
     }
@@ -45,7 +43,7 @@ public:
         starttime = CkWallTimer();
         updater_array.generateUpdates();
         //when the updating is done, allUpdatesDone function is called
-        CkStartQD(CkIndex_Main::allUpdatesDone(), &mainhandle);
+        CkStartQD(CkCallback(CkIndex_Main::allUpdatesDone(), thisProxy));
     }
     void allUpdatesDone()
     {
