@@ -1,4 +1,4 @@
-CHARMC = $(HOME)/git/charm/net-linux-x86_64/bin/charmc 
+include ../config.mk
 BINARY = random_access 
 
 SRCFILES = $(wildcard *.cc) 
