@@ -5,7 +5,7 @@
 #define BUCKET_SIZE_FACTOR 4
 
 
-//#define DEBUG_STREAMER 1
+#define DEBUG_STREAMER 1
 
 MeshStreamerClient::MeshStreamerClient() {}
 
@@ -333,8 +333,8 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
            void *dataItem = messageBuffers[i]->getDataItem(j);   
            directMsg->addDataItem(dataItem);
            clientProxy_[destinationPe].receiveCombinedData(directMsg);
-           delete messageBuffers[i];
          }
+         delete messageBuffers[i];
        }
        messageBuffers[i] = NULL;
     }
