@@ -1,5 +1,5 @@
-#include "randomAccess.decl.h"
 #include "MeshStreamer.h"
+#include "randomAccess.decl.h"
 #include "TopoManager.h"
 
 #ifdef LONG_IS_64BITS
@@ -12,14 +12,13 @@
 #define PERIOD 1317624576693539401LL
 #endif
 
-#define DATA_ITEM_SIZE 8
 #define NUM_MESSAGES_BUFFERED 1024
 
 CProxy_Main     mainProxy;
 int             N;                  //log local table size    
 CmiInt8         localTableSize;
 CmiInt8         tableSize;
-CProxy_MeshStreamer aggregator; 
+CProxy_MeshStreamer<CmiUInt8> aggregator; 
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
 
@@ -32,10 +31,8 @@ public:
         int NUM_ROWS = 2;
         int NUM_COLUMNS= 2;
         int NUM_PLANES= 1;
-        int NUM_PES_PER_NODE;
         TopoManager tmgr;
         N = atoi(args->argv[1]);
-        NUM_PES_PER_NODE = CkMyNodeSize();
         //use this if you do not want to differentiate based on core ID's
         NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
         NUM_COLUMNS = tmgr.getDimNY();
@@ -50,7 +47,7 @@ public:
         // Create the chares storing and updating the global table
         updater_array   = CProxy_Updater::ckNew();
         //Create Mesh Streamer instance
-        aggregator = CProxy_MeshStreamer::ckNew(DATA_ITEM_SIZE, NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, updater_array);
+        aggregator = CProxy_MeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, updater_array);
     }
     void start() {
         starttime = CkWallTimer();
@@ -93,7 +90,7 @@ public:
     }
 };
 
-class Updater : public MeshStreamerClient {
+class Updater : public MeshStreamerClient<CmiUInt8> {
 private:
     CmiUInt8 *HPCC_Table;
     CmiUInt8 globalStartmyProc;
@@ -121,13 +118,13 @@ public:
             }
             else {
                 //sending messages out and receive message to apply the update table
-                ((MeshStreamer *)CkLocalBranch(aggregator))->insertData(&ran, tableIndex);
+                ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->insertData(ran, tableIndex);
                 if(i%1024 == 0) CthYield();   
             }
         }
     }
     //receive remote updates and update the table
-    void receiveCombinedData(MeshStreamerMessage *msg) 
+    void receiveCombinedData(MeshStreamerMessage<CmiUInt8> *msg) 
     {
         for (int i = 0; i < msg->numDataItems; i++) {
             CmiUInt8 ran = ((CmiUInt8*)(msg->data))[i];

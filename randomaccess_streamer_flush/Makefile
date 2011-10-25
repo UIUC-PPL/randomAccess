@@ -1,4 +1,4 @@
-CHARMC = /expand/home/jessie/PPL/git/charm/mpi-linux-x86_64/bin/charmc 
+CHARMC = $(HOME)/git/charm/net-linux-x86_64/bin/charmc 
 BINARY = random_access 
 
 SRCFILES = $(wildcard *.cc) 
@@ -8,8 +8,9 @@ HFILES = $(CIFILES:.ci=.decl.h) $(CIFILES:.ci=.def.h)
 CHARMCFLAGS= -O3 $(OPTS)
 
 all: $(BINARY) 
+
 random_access: $(OBJFILES)
-	$(CHARMC) $(CHARMCFLAGS) -language charm++ -o $@ $+
+	$(CHARMC) $(CHARMCFLAGS) -language charm++ -o $@ $+ -module MeshStreamer
 
 .SECONDARY: $(patsubst %.cc,%.decl.h,$(wildcard *.cc))
 .SECONDARY: $(patsubst %.cc,%.def.h,$(wildcard *.cc))

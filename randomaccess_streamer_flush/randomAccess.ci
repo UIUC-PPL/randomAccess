@@ -1,10 +1,10 @@
 mainmodule randomAccess {
-    extern   module     MeshStreamer;
+//    extern   module     MeshStreamer;
     readonly CProxy_Main    mainProxy;
     readonly int            N;
     readonly CmiInt8        localTableSize;
     readonly CmiInt8        tableSize;
-    readonly CProxy_MeshStreamer aggregator; 
+    readonly CProxy_MeshStreamer<CmiUInt8> aggregator; 
     
     mainchare Main {
         entry Main (CkArgMsg*);
@@ -15,10 +15,14 @@ mainmodule randomAccess {
         entry [reductiontarget] void verifyDone(CmiInt8);
     };
     
-    group Updater: MeshStreamerClient {
+    group Updater: MeshStreamerClient<CmiUInt8> {
         entry Updater();
         //entry void initialize();
         entry [threaded] void  generateUpdates();
         entry void checkErrors();
     };
+
+    message MeshStreamerMessage<CmiUInt8>;
+    group MeshStreamerClient<CmiUInt8>;
+    group MeshStreamer<CmiUInt8>;
 };
