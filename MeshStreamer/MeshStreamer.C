@@ -5,7 +5,7 @@
 #define BUCKET_SIZE_FACTOR 4
 
 
-#define DEBUG_STREAMER 1
+//#define DEBUG_STREAMER 1
 
 MeshStreamerClient::MeshStreamerClient() {}
 
