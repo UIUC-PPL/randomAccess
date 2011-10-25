@@ -4,6 +4,9 @@
 // reaching totalBufferCapacity_
 #define BUCKET_SIZE_FACTOR 4
 
+
+#define DEBUG_STREAMER 1
+
 MeshStreamerClient::MeshStreamerClient() {}
 
 void MeshStreamerClient::receiveCombinedData(MeshStreamerMessage *msg) {
@@ -294,16 +297,17 @@ void MeshStreamer::flushLargestBucket(MeshStreamerMessage **messageBuffers,
   if (maxSize > 0) {
     destinationBucket = messageBuffers[flushIndex];
     destinationIndex = myNodeIndex_ + (flushIndex - myIndex) * dimensionFactor;
+    if (destinationBucket != NULL) {
+      numDataItemsBuffered_ -= destinationBucket->numDataItems;
+    }
     if (messageBuffers == personalizedBuffers_) {
       clientProxy_[destinationIndex].receiveCombinedData(destinationBucket);
     }
     else {
       thisProxy[destinationIndex].receiveAggregateData(destinationBucket);
     }
-    numDataItemsBuffered_ -= destinationBucket->numDataItems;
     messageBuffers[flushIndex] = NULL;
   }
-
 }
 
 void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuffers)
@@ -313,6 +317,7 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
        if(messageBuffers[i] == NULL)
            continue;
        //flush all messages in i bucket
+       numDataItemsBuffered_ -= messageBuffers[i]->numDataItems;
        if (messageBuffers == personalizedBuffers_) {
          int destinationPe = myNodeIndex_ + (i - myRowIndex_) * numColumns_; 
          clientProxy_[destinationPe].receiveCombinedData(messageBuffers[i]);
@@ -321,17 +326,20 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
          for (int j = 0; j < messageBuffers[i]->numDataItems; j++) {
            MeshStreamerMessage *directMsg = 
              new (0, dataItemSize_) MeshStreamerMessage(dataItemSize_);
+#ifdef DEBUG_STREAMER
+           CkAssert(directMsg != NULL);
+#endif
            int destinationPe = messageBuffers[i]->destinationPes[j]; 
            void *dataItem = messageBuffers[i]->getDataItem(j);   
            directMsg->addDataItem(dataItem);
            clientProxy_[destinationPe].receiveCombinedData(directMsg);
          }
        }
-       numDataItemsBuffered_ -= messageBuffers[i]->numDataItems;
        messageBuffers[i] = NULL;
     }
 
 #ifdef DEBUG_STREAMER
+    CkPrintf("[%d] numDataItemsBuffered_: %d\n", CkMyPe(), numDataItemsBuffered_);
     CkAssert(numDataItemsBuffered_ == 0); 
 #endif
 }
