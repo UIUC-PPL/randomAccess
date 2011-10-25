@@ -333,6 +333,7 @@ void MeshStreamer::flushBuckets(MeshStreamerMessage **messageBuffers, int numBuf
            void *dataItem = messageBuffers[i]->getDataItem(j);   
            directMsg->addDataItem(dataItem);
            clientProxy_[destinationPe].receiveCombinedData(directMsg);
+           delete messageBuffers[i];
          }
        }
        messageBuffers[i] = NULL;
