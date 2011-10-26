@@ -1,5 +1,4 @@
 mainmodule randomAccess {
-//    extern   module     MeshStreamer;
     readonly CProxy_Main    mainProxy;
     readonly int            N;
     readonly CmiInt8        localTableSize;
