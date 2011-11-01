@@ -56,7 +56,7 @@ public:
         updater_array.generateUpdates();
 
         CkCallback cb(CkIndex_Main::allUpdatesDone(), thisProxy);
-        ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->start(cb);
+        ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->associateCallback(cb);
     }
 
     void allUpdatesDone()
@@ -71,7 +71,7 @@ public:
         updater_array.generateUpdates();
 
         CkCallback cb(CkIndex_Updater::checkErrors(), updater_array);
-        ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->start(cb);
+        ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->associateCallback(cb);
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {
@@ -94,35 +94,21 @@ public:
         contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
     }
 
+    inline virtual void process(CmiUInt8  ran) {
+        CmiInt8  localOffset = ran & (localTableSize - 1);
+        HPCC_Table[localOffset] ^= ran;
+    }
+
     void generateUpdates()
     {
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
-        CmiUInt8 updatesNum = 4 * localTableSize;
-        for(CmiInt8 i=0; i<updatesNum;i++)
+        MeshStreamer<CmiUInt8> * streamer = ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator));
+        for(CmiInt8 i=0; i< 4 * localTableSize; i++)
         {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
             int tableIndex = (ran >>  N)&(CkNumPes()-1);
-            if(tableIndex ==  CkMyPe())
-            {
-                CmiUInt8 localOffset = (ran&(tableSize-1))-globalStartmyProc;
-                HPCC_Table[localOffset] ^= ran;
-            }
-            else {
-                //sending messages out and receive message to apply the update table
-                ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->insertData(ran, tableIndex);
-                if(i%1024 == 0) CthYield();   
-            }
+            streamer->insertData(ran, tableIndex);
         }
-    }
-    //receive remote updates and update the table
-    void receiveCombinedData(MeshStreamerMessage<CmiUInt8> *msg) 
-    {
-        for (int i = 0; i < msg->numDataItems; i++) {
-            CmiUInt8 ran = ((CmiUInt8*)(msg->data))[i];
-            CmiInt8  localOffset = ran & (localTableSize - 1);
-            HPCC_Table[localOffset] ^= ran;
-        }
-        delete msg;
     }
 
     void checkErrors()
