@@ -8,9 +8,7 @@ mainmodule randomAccess {
     mainchare Main {
         entry Main (CkArgMsg*);
         entry [reductiontarget] void start();
-        entry void startFlush();
         entry void allUpdatesDone();
-        entry void startFlushVerify();
         entry [reductiontarget] void verifyDone(CmiInt8);
     };
     

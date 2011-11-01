@@ -49,20 +49,16 @@ public:
         //Create Mesh Streamer instance
         aggregator = CProxy_MeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, updater_array);
     }
+
     void start() {
         starttime = CkWallTimer();
         // Give the updater chares the 'go' signal
         updater_array.generateUpdates();
-        // Ask for notification when the updates are all done, notify Mesh Streamer 
-        // to flush all the messages in the buffer
-        CkStartQD(CkCallback(CkIndex_Main::startFlush(), thisProxy));
+
+        CkCallback cb(CkIndex_Main::allUpdatesDone(), thisProxy);
+        ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->start(cb);
     }
-    //flush the messages that sit in the mesh streamer buffer
-    void startFlush()
-    {
-        aggregator.flushDirect();
-        CkStartQD(CkCallback(CkIndex_Main::allUpdatesDone(), thisProxy));
-    }
+
     void allUpdatesDone()
     {
         double update_walltime = CkWallTimer() - starttime;
@@ -73,16 +69,11 @@ public:
         CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
         // Repeat the update process to verify
         updater_array.generateUpdates();
-        // After verification is done,  flush Mesh Streamer messages
-        CkStartQD(CkCallback(CkIndex_Main::startFlushVerify(), thisProxy));
+
+        CkCallback cb(CkIndex_Updater::checkErrors(), updater_array);
+        ((MeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator))->start(cb);
     }
     
-    void startFlushVerify()
-    {
-        aggregator.flushDirect();
-        CkStartQD(CkCallback(CkIndex_Updater::checkErrors(), updater_array));
-    }
-
     void verifyDone(CmiInt8 globalNumErrors) {
         CkPrintf(  "Found %lld errors in %lld locations (%s).\n", globalNumErrors, 
             tableSize, (globalNumErrors <= 0.01*tableSize) ? "passed" : "failed");
