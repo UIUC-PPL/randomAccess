@@ -47,7 +47,7 @@ public:
         // Create the chares storing and updating the global table
         updater_array   = CProxy_Updater::ckNew();
         //Create Mesh Streamer instance
-        aggregator = CProxy_MeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, updater_array);
+        aggregator = CProxy_MeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED, NUM_ROWS, NUM_COLUMNS, NUM_PLANES, updater_array, 1);
     }
 
     void start() {
