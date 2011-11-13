@@ -94,7 +94,7 @@ public:
         contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
     }
 
-    inline virtual void process(CmiUInt8  ran) {
+    inline virtual void process(CmiUInt8  &ran) {
         CmiInt8  localOffset = ran & (localTableSize - 1);
         HPCC_Table[localOffset] ^= ran;
     }
