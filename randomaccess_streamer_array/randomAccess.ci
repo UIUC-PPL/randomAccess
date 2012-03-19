@@ -1,6 +1,7 @@
 mainmodule randomAccess {
     readonly CProxy_Main    mainProxy;
     readonly int            N;
+    readonly int            numElementsPerPe; 
     readonly CmiInt8        localTableSize;
     readonly CmiInt8        tableSize;
     readonly CProxy_ArrayMeshStreamer<CmiUInt8> aggregator; 
@@ -8,7 +9,7 @@ mainmodule randomAccess {
     
     mainchare Main {
         entry Main (CkArgMsg*);
-        entry [reductiontarget] void start();
+        entry void start();
         entry void allUpdatesDone();
         entry [reductiontarget] void verifyDone(CmiInt8);
     };

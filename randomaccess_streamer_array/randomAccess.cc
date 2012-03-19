@@ -17,6 +17,7 @@
 
 CProxy_Main     mainProxy;
 int             N;                  //log local table size    
+int             numElementsPerPe; 
 CmiInt8         localTableSize;
 CmiInt8         tableSize;
 CProxy_ArrayMeshStreamer<CmiUInt8> aggregator; 
@@ -30,26 +31,25 @@ private:
     double starttime;
 public:
     Main(CkArgMsg* args) {
-        int NUM_ROWS = 2;
-        int NUM_COLUMNS= 2;
-        int NUM_PLANES= 2;
+        int NUM_ROWS, NUM_COLUMNS, NUM_PLANES;
         TopoManager tmgr;
         N = atoi(args->argv[1]);
-        //use this if you do not want to differentiate based on core ID's
+        numElementsPerPe = atoi(args->argv[2]); 
         NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
         NUM_COLUMNS = tmgr.getDimNY();
         NUM_PLANES = tmgr.getDimNZ();
         delete args;
 
         int dims[3] = {NUM_ROWS, NUM_COLUMNS, NUM_PLANES}; 
-        localTableSize = 1l << N;
-        tableSize = localTableSize * CkNumPes();
+        localTableSize = (1l << N) / numElementsPerPe;
+        CkPrintf("LocalTableSize: %lld\n", localTableSize);
+        tableSize = localTableSize * CkNumPes() * numElementsPerPe;
         CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
         CkPrintf("Number of processors = %d\n", CkNumPes());
         CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
         // Create the chares storing and updating the global table
-        updater_array   = CProxy_Updater::ckNew(CkNumPes());
+        updater_array   = CProxy_Updater::ckNew(CkNumPes() * numElementsPerPe);
         //Create Mesh Streamer instance
         aggregator = CProxy_ArrayMeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED,3, dims, updater_array, 1, 10);
         detector = CProxy_CompletionDetector::ckNew();
@@ -90,11 +90,11 @@ private:
     CmiUInt8 globalStartmyProc;
 public:
     Updater() {
-        globalStartmyProc = CkMyPe()* localTableSize  ;
+        globalStartmyProc = thisIndex * localTableSize  ;
         HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
         for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
-        contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
+        contribute(CkCallback(CkIndex_Main::start(), mainProxy));
     }
 
      Updater(CkMigrateMessage *msg) {}
@@ -106,12 +106,14 @@ public:
 
     void generateUpdates()
     {
+        int arrayN = N - (int) log2((double) numElementsPerPe); 
+        int numElements = CkNumPes() * numElementsPerPe;
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
         ArrayMeshStreamer<CmiUInt8> * streamer = ((ArrayMeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator));
         for(CmiInt8 i=0; i< 4 * localTableSize; i++)
         {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
-            int tableIndex = (ran >>  N)&(CkNumPes()-1);
+            int tableIndex = (ran >>  arrayN)&(numElements-1);
             streamer->insertData(ran, tableIndex);
         }
         streamer->done();
@@ -119,6 +121,7 @@ public:
 
     void checkErrors()
     {
+      CmiMemoryCheck();
         CmiInt8 numErrors = 0;
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
