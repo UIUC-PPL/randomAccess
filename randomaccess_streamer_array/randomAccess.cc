@@ -60,7 +60,8 @@ public:
         // Give the updater chares the 'go' signal after aggregator setup is complete
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_array);
         CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
-        aggregator.associateCallback(startCb, endCb, detector);
+        int numContributors = CkNumPes() * numElementsPerPe; 
+        aggregator.associateCallback(numContributors, startCb, endCb, detector);
     }
 
     void allUpdatesDone()
@@ -74,7 +75,8 @@ public:
         // Repeat the update process to verify
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_array);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_array);
-        aggregator.associateCallback(startCb, endCb, detector);
+        int numContributors = CkNumPes() * numElementsPerPe; 
+        aggregator.associateCallback(numContributors, startCb, endCb, detector);
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {
