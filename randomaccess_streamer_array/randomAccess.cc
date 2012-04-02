@@ -20,7 +20,9 @@ int             N;                  //log local table size
 int             numElementsPerPe; 
 CmiInt8         localTableSize;
 CmiInt8         tableSize;
-CProxy_ArrayMeshStreamer<CmiUInt8> aggregator; 
+CProxy_ArrayMeshStreamer<CmiUInt8, 
+                         CProxy_MeshStreamerArrayClient<CmiUInt8>, 
+                         int> aggregator; 
 CProxy_CompletionDetector detector; 
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
@@ -51,7 +53,11 @@ public:
         // Create the chares storing and updating the global table
         updater_array   = CProxy_Updater::ckNew(CkNumPes() * numElementsPerPe);
         //Create Mesh Streamer instance
-        aggregator = CProxy_ArrayMeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED,3, dims, updater_array, 1, 10);
+        aggregator = 
+          CProxy_ArrayMeshStreamer<CmiUInt8, 
+                                   CProxy_MeshStreamerArrayClient<CmiUInt8>, 
+                                   int>::ckNew(NUM_MESSAGES_BUFFERED,3, 
+                                               dims, updater_array, 1, 10);
         detector = CProxy_CompletionDetector::ckNew();
     }
 
@@ -111,7 +117,10 @@ public:
         int arrayN = N - (int) log2((double) numElementsPerPe); 
         int numElements = CkNumPes() * numElementsPerPe;
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
-        ArrayMeshStreamer<CmiUInt8> * streamer = ((ArrayMeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator));
+        ArrayMeshStreamer<CmiUInt8, CProxy_MeshStreamerArrayClient<CmiUInt8>, int> 
+          * streamer = ((ArrayMeshStreamer<CmiUInt8, 
+                                           CProxy_MeshStreamerArrayClient<CmiUInt8>, 
+                                           int> *)CkLocalBranch(aggregator));
         for(CmiInt8 i=0; i< 4 * localTableSize; i++)
         {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
