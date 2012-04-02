@@ -58,7 +58,8 @@ public:
         // Give the updater chares the 'go' signal
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);
         CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
-        aggregator.associateCallback(CkNumPes(), startCb, endCb, detector);
+        aggregator.associateCallback(CkNumPes(), startCb, endCb, detector, 
+                                     INT_MIN);
     }
 
     void allUpdatesDone()
@@ -72,7 +73,8 @@ public:
         // Repeat the update process to verify
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_group);
-        aggregator.associateCallback(CkNumPes(), startCb, endCb, detector);
+        aggregator.associateCallback(CkNumPes(), startCb, endCb, detector, 
+                                     INT_MIN);
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {
