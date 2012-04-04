@@ -2,6 +2,7 @@
 #include "randomAccess.decl.h"
 #include "TopoManager.h"
 #include "completion.h"
+#include "limits.h"
 
 #ifdef LONG_IS_64BITS
 #define ZERO64B 0L
