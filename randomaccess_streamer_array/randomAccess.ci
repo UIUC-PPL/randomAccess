@@ -4,9 +4,7 @@ mainmodule randomAccess {
     readonly int            numElementsPerPe; 
     readonly CmiInt8        localTableSize;
     readonly CmiInt8        tableSize;
-    readonly CProxy_ArrayMeshStreamer<CmiUInt8, 
-                                      CProxy_MeshStreamerArrayClient<CmiUInt8>,
-                                      int> aggregator; 
+    readonly CProxy_ArrayMeshStreamer<CmiUInt8, int> aggregator; 
     readonly CProxy_CompletionDetector detector;
     
     mainchare Main {
@@ -24,9 +22,7 @@ mainmodule randomAccess {
 
     message MeshStreamerMessage<ArrayDataItem<CmiUInt8, int> >;
     array [1D] MeshStreamerArrayClient<CmiUInt8>;
-    group ArrayMeshStreamer<CmiUInt8, 
-                            CProxy_MeshStreamerArrayClient<CmiUInt8>,
-                            int>;    
+    group ArrayMeshStreamer<CmiUInt8, int>;    
     group MeshStreamer<ArrayDataItem<CmiUInt8, int> >;
 
 };
