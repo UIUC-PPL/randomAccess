@@ -1,0 +1,31 @@
+mainmodule randomAccess {
+
+  include "randomAccessDatatype.h";
+
+    readonly CProxy_Main    mainProxy;
+    readonly int            N;
+    readonly int            numElementsPerPe; 
+    readonly CmiInt8        localTableSize;
+    readonly CmiInt8        tableSize;
+    readonly CProxy_ArrayMeshStreamer<raDtype, CkArrayIndex2D> aggregator; 
+    readonly CProxy_CompletionDetector detector;
+    
+    mainchare Main {
+        entry Main (CkArgMsg*);
+        entry void start();
+        entry void allUpdatesDone();
+        entry [reductiontarget] void verifyDone(CmiInt8);
+    };
+    
+    array [2D] Updater: MeshStreamerArrayClient<raDtype> {
+        entry Updater();
+        entry [threaded] void  generateUpdates();
+        entry void checkErrors();
+    };
+
+    message MeshStreamerMessage<ArrayDataItem<raDtype, CkArrayIndex2D> >;
+    array [2D] MeshStreamerArrayClient<raDtype>;
+    group ArrayMeshStreamer<raDtype, CkArrayIndex2D>;    
+    group MeshStreamer<ArrayDataItem<raDtype, CkArrayIndex2D> >;
+
+};
