@@ -4,7 +4,6 @@ mainmodule randomAccess {
     readonly CmiInt8        localTableSize;
     readonly CmiInt8        tableSize;
     readonly CProxy_GroupMeshStreamer<CmiUInt8> aggregator; 
-    readonly CProxy_CompletionDetector detector;
     
     mainchare Main {
         entry Main (CkArgMsg*);

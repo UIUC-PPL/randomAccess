@@ -66,7 +66,7 @@ public:
         CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
         int numContributors = CkNumPes() * numElementsPerPe; 
         aggregator.associateCallback(numContributors, startCb, endCb, detector,
-                                     INT_MIN);
+                                     INT_MIN, true);
     }
 
     void allUpdatesDone()
@@ -82,7 +82,7 @@ public:
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_array);
         int numContributors = CkNumPes() * numElementsPerPe; 
         aggregator.associateCallback(numContributors, startCb, endCb, detector,
-                                     INT_MIN);
+                                     INT_MIN, true);
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {

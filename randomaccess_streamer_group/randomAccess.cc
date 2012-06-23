@@ -20,7 +20,6 @@ int             N;                  //log local table size
 CmiInt8         localTableSize;
 CmiInt8         tableSize;
 CProxy_GroupMeshStreamer<CmiUInt8> aggregator; 
-CProxy_CompletionDetector detector;
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
 
@@ -50,7 +49,6 @@ public:
         updater_group   = CProxy_Updater::ckNew();
         //Create Mesh Streamer instance
         aggregator = CProxy_GroupMeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED, 3, dims, updater_group, 1, 10);
-        detector = CProxy_CompletionDetector::ckNew();
     }
 
     void start() {
@@ -58,8 +56,7 @@ public:
         // Give the updater chares the 'go' signal
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);
         CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
-        aggregator.associateCallback(CkNumPes(), startCb, endCb, detector, 
-                                     INT_MIN);
+        aggregator.init(1, startCb, endCb, INT_MIN, false);
     }
 
     void allUpdatesDone()
@@ -73,8 +70,7 @@ public:
         // Repeat the update process to verify
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_group);
-        aggregator.associateCallback(CkNumPes(), startCb, endCb, detector, 
-                                     INT_MIN);
+        aggregator.init(1, startCb, endCb, INT_MIN, false);
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {
