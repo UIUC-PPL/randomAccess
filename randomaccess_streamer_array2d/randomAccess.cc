@@ -66,7 +66,7 @@ public:
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_array);
         CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
         int numContributors = CkNumPes() * numElementsPerPe; 
-        aggregator.associateCallback(numContributors, startCb, endCb, detector,
+        aggregator.init(numContributors, startCb, endCb, detector,
                                      INT_MIN, false);
     }
 
@@ -82,7 +82,7 @@ public:
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_array);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_array);
         int numContributors = CkNumPes() * numElementsPerPe; 
-        aggregator.associateCallback(numContributors, startCb, endCb, detector,
+        aggregator.init(numContributors, startCb, endCb, detector,
                                      INT_MIN, false);
     }
     

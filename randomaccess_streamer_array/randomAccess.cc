@@ -1,7 +1,6 @@
 #include "NDMeshStreamer.h"
 #include "randomAccess.decl.h"
 #include "TopoManager.h"
-#include "completion.h"
 #include "limits.h"
 
 #ifdef LONG_IS_64BITS
@@ -22,7 +21,6 @@ int             numElementsPerPe;
 CmiInt8         localTableSize;
 CmiInt8         tableSize;
 CProxy_ArrayMeshStreamer<CmiUInt8, int> aggregator; 
-CProxy_CompletionDetector detector; 
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
 
@@ -56,7 +54,6 @@ public:
           CProxy_ArrayMeshStreamer<CmiUInt8, 
                                    int>::ckNew(NUM_MESSAGES_BUFFERED,3, 
                                                dims, updater_array, 1, 10);
-        detector = CProxy_CompletionDetector::ckNew();
     }
 
     void start() {
@@ -65,8 +62,8 @@ public:
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_array);
         CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
         int numContributors = CkNumPes() * numElementsPerPe; 
-        aggregator.associateCallback(numContributors, startCb, endCb, detector,
-                                     INT_MIN, true);
+        aggregator.init(updater_array.ckGetArrayID(), startCb, endCb, 
+                        INT_MIN, false);
     }
 
     void allUpdatesDone()
@@ -81,8 +78,8 @@ public:
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_array);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_array);
         int numContributors = CkNumPes() * numElementsPerPe; 
-        aggregator.associateCallback(numContributors, startCb, endCb, detector,
-                                     INT_MIN, true);
+        aggregator.init(updater_array.ckGetArrayID(), startCb, endCb, 
+                        INT_MIN, false);
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {
