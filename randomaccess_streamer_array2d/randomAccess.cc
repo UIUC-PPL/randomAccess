@@ -22,7 +22,7 @@ int             N;                  //log local table size
 int             numElementsPerPe; 
 CmiInt8         localTableSize;
 CmiInt8         tableSize;
-CProxy_ArrayMeshStreamer<raDtype, CkArrayIndex2D> aggregator; 
+CProxy_ArrayMeshStreamer<raDtype, CkArrayIndex> aggregator; 
 CProxy_CompletionDetector detector; 
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
@@ -54,7 +54,7 @@ public:
         updater_array   = CProxy_Updater::ckNew(CkNumPes() * numElementsPerPe, 1);
         //Create Mesh Streamer instance
         aggregator = 
-          CProxy_ArrayMeshStreamer <raDtype, CkArrayIndex2D>::ckNew(
+          CProxy_ArrayMeshStreamer <raDtype, CkArrayIndex>::ckNew(
            NUM_MESSAGES_BUFFERED,3, dims, 
            (CProxy_MeshStreamerArrayClient<raDtype> )updater_array, true, 10.0);
         detector = CProxy_CompletionDetector::ckNew();
@@ -67,7 +67,7 @@ public:
         CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
         int numContributors = CkNumPes() * numElementsPerPe; 
         aggregator.associateCallback(numContributors, startCb, endCb, detector,
-                                     INT_MIN);
+                                     INT_MIN, false);
     }
 
     void allUpdatesDone()
@@ -83,7 +83,7 @@ public:
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_array);
         int numContributors = CkNumPes() * numElementsPerPe; 
         aggregator.associateCallback(numContributors, startCb, endCb, detector,
-                                     INT_MIN);
+                                     INT_MIN, false);
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {
@@ -111,7 +111,7 @@ public:
 
      Updater(CkMigrateMessage *msg) {}
 
-    inline virtual void process(raDtype  &ran) {
+    inline virtual void process(const raDtype  &ran) {
         CmiInt8  localOffset = ran.elems[0] & (localTableSize - 1);
         HPCC_Table[localOffset] ^= ran.elems[0];
     }
@@ -122,8 +122,8 @@ public:
         int numElements = CkNumPes() * numElementsPerPe;
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
         raDtype temp;
-        ArrayMeshStreamer<raDtype, CkArrayIndex2D> * streamer = 
-          ((ArrayMeshStreamer<raDtype, CkArrayIndex2D> *)
+        ArrayMeshStreamer<raDtype, CkArrayIndex> * streamer = 
+          ((ArrayMeshStreamer<raDtype, CkArrayIndex> *)
            CkLocalBranch(aggregator));
         for(CmiInt8 i=0; i< 4 * localTableSize; i++)
         {

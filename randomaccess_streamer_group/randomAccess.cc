@@ -2,6 +2,7 @@
 #include "randomAccess.decl.h"
 #include "TopoManager.h"
 #include "completion.h"
+#include "limits.h"
 
 #ifdef LONG_IS_64BITS
 #define ZERO64B 0L
@@ -93,7 +94,7 @@ public:
         contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
     }
 
-    inline virtual void process(CmiUInt8  &ran) {
+    inline virtual void process(const CmiUInt8  &ran) {
         CmiInt8  localOffset = ran & (localTableSize - 1);
         HPCC_Table[localOffset] ^= ran;
     }
