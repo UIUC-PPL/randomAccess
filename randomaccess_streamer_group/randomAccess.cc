@@ -43,8 +43,7 @@ public:
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
         CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
-        CkPrintf("Number of processors = %d\n", CkNumPes());
-        CkPrintf("Number of updates = %lld\n", (4*tableSize));
+        CkPrintf("Number of processors = %d\nNumber of updates = %lld\n", CkNumPes(), 4*tableSize);
         mainProxy = thishandle;
         // Create the chares storing and updating the global table
         updater_group   = CProxy_Updater::ckNew();
@@ -60,8 +59,7 @@ public:
         aggregator.init(1, startCb, endCb, INT_MIN, false);
     }
 
-    void allUpdatesDone()
-    {
+    void allUpdatesDone() {
         double update_walltime = CkWallTimer() - starttime;
         double gups = 1e-9 * tableSize * 4.0/update_walltime;
         double singlegups =  gups/CkNumPes();
@@ -99,12 +97,10 @@ public:
         HPCC_Table[localOffset] ^= ran;
     }
 
-    void generateUpdates()
-    {
+    void generateUpdates() {
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
         GroupMeshStreamer<CmiUInt8> * streamer = ((GroupMeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator));
-        for(CmiInt8 i=0; i< 4 * localTableSize; i++)
-        {
+        for(CmiInt8 i=0; i< 4 * localTableSize; i++) {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
             int tableIndex = (ran >>  N)&(CkNumPes()-1);
             //    CkPrintf("[%d] sending %lld to %d\n", CkMyPe(), ran, tableIndex);
@@ -113,8 +109,7 @@ public:
         streamer->done();
     }
 
-    void checkErrors()
-    {
+    void checkErrors() {
         CmiInt8 numErrors = 0;
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
@@ -125,8 +120,7 @@ public:
 };
 
 /** random generator */
-CmiUInt8 HPCC_starts(CmiInt8 n)
-{
+CmiUInt8 HPCC_starts(CmiInt8 n) {
     int i, j;
     CmiUInt8 m2[64];
     CmiUInt8 temp, ran;
