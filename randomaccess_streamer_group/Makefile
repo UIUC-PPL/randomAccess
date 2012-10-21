@@ -5,7 +5,8 @@ SRCFILES = $(wildcard *.cc)
 OBJFILES = $(SRCFILES:.cc=.o) 
 CIFILES = $(wildcard *.ci)
 HFILES = $(CIFILES:.ci=.decl.h) $(CIFILES:.ci=.def.h)
-CHARMCFLAGS= -O3 $(OPTS)
+OPTS ?= -O3
+CHARMCFLAGS= $(OPTS)
 
 all: $(BINARY) 
 
