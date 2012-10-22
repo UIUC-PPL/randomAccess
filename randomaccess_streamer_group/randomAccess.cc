@@ -5,6 +5,7 @@ typedef CmiUInt8 dtype;
 #include "TopoManager.h"
 #include "completion.h"
 #include "limits.h"
+#include <vector>
 
 #ifdef LONG_IS_64BITS
 #define ZERO64B 0L
@@ -34,22 +35,27 @@ public:
     Main(CkArgMsg* args) {
         TopoManager tmgr;
         N = atoi(args->argv[1]);
+        int ndims = atoi(args->argv[2]);
+        std::vector<int> tramD;
+        for (int i=0; i<ndims; i++)
+            tramD.push_back( atoi(args->argv[i+3]) );
+//      int dims[5] = { tmgr.getDimNA()
+//                    * tmgr.getDimNB()
+//                    , tmgr.getDimNC()
+//                    , tmgr.getDimND()
+//                    * tmgr.getDimNE()
+//                    , 8
+//                    , tmgr.getDimNT()/8
+//      }; 
         delete args;
         
-        int dims[5] = { tmgr.getDimNA()
-                      * tmgr.getDimNB()
-                      , tmgr.getDimNC()
-                      , tmgr.getDimND()
-                      * tmgr.getDimNE()
-                      , 8
-                      , tmgr.getDimNT()/8
-        }; 
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
         CkPrintf("topo: a(%d), b(%d), c(%d), d(%d), e(%d), t(%d)\n",
                 tmgr.getDimNA(), tmgr.getDimNB(), tmgr.getDimNC(), tmgr.getDimND(), tmgr.getDimNE(), tmgr.getDimNT());
-        CkPrintf("MeshStreamer Dims (ND = %d): d1(%d), d2(%d), d3(%d), d4(%d), d5(%d)\n",
-                5, dims[0], dims[1], dims[2], dims[3], dims[4]);
+        CkPrintf("MeshStreamer Dims (ND = %d): ", tramD.size());
+        for (int i=0; i< tramD.size(); i++)
+            CkPrintf("d%d(%d), ",i,tramD[i]);
         CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
         CkPrintf("Number of PEs = %d\n", CkNumPes());
         CkPrintf("Number of processes = %d\n", CkNumNodes());
