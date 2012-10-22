@@ -1,2 +1,2 @@
 
-CHARMC = $(HOME)/git/charm/net-linux-x86_64/bin/charmc
+CHARMC = $(HOME)/charm/bin/charmc
