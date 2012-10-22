@@ -32,25 +32,39 @@ private:
     double starttime;
 public:
     Main(CkArgMsg* args) {
-        int NUM_ROWS, NUM_COLUMNS, NUM_PLANES;
         TopoManager tmgr;
         N = atoi(args->argv[1]);
-        //use this if you do not want to differentiate based on core ID's
-        NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
-        NUM_COLUMNS = tmgr.getDimNY();
-        NUM_PLANES = tmgr.getDimNZ();
         delete args;
-
-        int dims[3] = {NUM_ROWS, NUM_COLUMNS, NUM_PLANES}; 
+        
+        int dims[5] = { tmgr.getDimNA()
+                      * tmgr.getDimNB()
+                      , tmgr.getDimNC()
+                      , tmgr.getDimND()
+                      * tmgr.getDimNE()
+                      , 8
+                      , tmgr.getDimNT()/8
+        }; 
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
+        CkPrintf("topo: a(%d), b(%d), c(%d), d(%d), e(%d), t(%d)\n",
+                tmgr.getDimNA(), tmgr.getDimNB(), tmgr.getDimNC(), tmgr.getDimND(), tmgr.getDimNE(), tmgr.getDimNT());
+        CkPrintf("MeshStreamer Dims (ND = %d): d1(%d), d2(%d), d3(%d), d4(%d), d5(%d)\n",
+                5, dims[0], dims[1], dims[2], dims[3], dims[4]);
         CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
-        CkPrintf("Number of processors = %d\nNumber of updates = %lld\n", CkNumPes(), 4*tableSize);
+        CkPrintf("Number of PEs = %d\n", CkNumPes());
+        CkPrintf("Number of processes = %d\n", CkNumNodes());
+        CkPrintf("Number of updates = %lld\n", (4*tableSize));
         mainProxy = thishandle;
         // Create the chares storing and updating the global table
         updater_group   = CProxy_Updater::ckNew();
         //Create Mesh Streamer instance
         aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(NUM_MESSAGES_BUFFERED, 3, dims, updater_group, 1, 10);
+
+//      for (int i=0; i < CkNumPes(); i++) {
+//          int a, b, c, d, e, t;
+//          tmgr.rankToCoordinates(i, a, b, c, d, e, t);
+//          CkPrintf("pe %d: a=%d, b=%d, c=%d, d=%d, e=%d, t=%d\n", i, a, b, c, d, e, t);
+//      }
     }
 
     void start() {
