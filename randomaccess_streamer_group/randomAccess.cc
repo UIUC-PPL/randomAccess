@@ -1,4 +1,6 @@
 #include "NDMeshStreamer.h"
+
+typedef CmiUInt8 dtype;
 #include "randomAccess.decl.h"
 #include "TopoManager.h"
 #include "completion.h"
@@ -20,7 +22,7 @@ CProxy_Main     mainProxy;
 int             N;                  //log local table size    
 CmiInt8         localTableSize;
 CmiInt8         tableSize;
-CProxy_GroupMeshStreamer<CmiUInt8> aggregator; 
+CProxy_GroupMeshStreamer<dtype> aggregator; 
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
 
@@ -48,7 +50,7 @@ public:
         // Create the chares storing and updating the global table
         updater_group   = CProxy_Updater::ckNew();
         //Create Mesh Streamer instance
-        aggregator = CProxy_GroupMeshStreamer<CmiUInt8>::ckNew(NUM_MESSAGES_BUFFERED, 3, dims, updater_group, 1, 10);
+        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(NUM_MESSAGES_BUFFERED, 3, dims, updater_group, 1, 10);
     }
 
     void start() {
@@ -79,7 +81,7 @@ public:
     }
 };
 
-class Updater : public MeshStreamerGroupClient<CmiUInt8> {
+class Updater : public MeshStreamerGroupClient<dtype> {
 private:
     CmiUInt8 *HPCC_Table;
     CmiUInt8 globalStartmyProc;
@@ -92,15 +94,16 @@ public:
         contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
     }
 
-    inline virtual void process(const CmiUInt8  &ran) {
+    inline virtual void process(const dtype  &ran) {
         CmiInt8  localOffset = ran & (localTableSize - 1);
         HPCC_Table[localOffset] ^= ran;
     }
 
     void generateUpdates() {
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
-        GroupMeshStreamer<CmiUInt8> * streamer = ((GroupMeshStreamer<CmiUInt8> *)CkLocalBranch(aggregator));
-        for(CmiInt8 i=0; i< 4 * localTableSize; i++) {
+        GroupMeshStreamer<dtype> * streamer = ((GroupMeshStreamer<dtype> *)CkLocalBranch(aggregator));
+        for(CmiInt8 i=0; i< 4 * localTableSize; i++)
+        {
             ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
             int tableIndex = (ran >>  N)&(CkNumPes()-1);
             //    CkPrintf("[%d] sending %lld to %d\n", CkMyPe(), ran, tableIndex);

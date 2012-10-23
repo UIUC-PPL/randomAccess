@@ -3,7 +3,7 @@ mainmodule randomAccess {
     readonly int            N;
     readonly CmiInt8        localTableSize;
     readonly CmiInt8        tableSize;
-    readonly CProxy_GroupMeshStreamer<CmiUInt8> aggregator; 
+    readonly CProxy_GroupMeshStreamer<dtype> aggregator;
     
     mainchare Main {
         entry Main (CkArgMsg*);
@@ -18,9 +18,9 @@ mainmodule randomAccess {
         entry void checkErrors();
     };
 
-    message MeshStreamerMessage<CmiUInt8>;
-    group MeshStreamerGroupClient<CmiUInt8>;
-    group GroupMeshStreamer<CmiUInt8>;    
-    group MeshStreamer<CmiUInt8>;
+    message MeshStreamerMessage<dtype>;
+    group MeshStreamerGroupClient<dtype>;
+    group GroupMeshStreamer<dtype>;
+    group MeshStreamer<dtype>;
 
 };
