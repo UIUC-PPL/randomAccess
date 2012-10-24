@@ -37,7 +37,7 @@ public:
         TopoManager tmgr;
         int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
         // Instantiate communication library group with a handle to the client (data receiver)
-        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(numMsgsBuffered, 3, dims, updater_group, 1, 10);
+        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(numMsgsBuffered, 3, dims, updater_group, 1);
 
         delete args;
     }
