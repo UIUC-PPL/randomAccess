@@ -1,17 +1,17 @@
 mainmodule randomAccess {
-    readonly CProxy_Main    mainProxy;
-    readonly int            N;
-    readonly CmiInt8        localTableSize;
-    readonly CProxy_GroupMeshStreamer<dtype> aggregator;
+    readonly int                             N;              // log_2 of the local table size
+    readonly CmiInt8                         localTableSize; // The local table size
+    readonly CProxy_Main                     mainProxy;      // Handle to the test driver (chare)
+    readonly CProxy_GroupMeshStreamer<dtype> aggregator;     // Handle to the communication library (group)
     
     mainchare Main {
-        entry Main (CkArgMsg*);
+        entry Main (CkArgMsg *args);
         entry [reductiontarget] void start();
         entry void allUpdatesDone();
-        entry [reductiontarget] void verifyDone(CmiInt8);
+        entry [reductiontarget] void verifyDone(CmiInt8 globalNumErrors);
     };
     
-    group Updater: MeshStreamerGroupClient<CmiUInt8> {
+    group Updater: MeshStreamerGroupClient<dtype> {
         entry Updater();
         entry [threaded] void  generateUpdates();
         entry void checkErrors();
@@ -21,5 +21,4 @@ mainmodule randomAccess {
     group MeshStreamerGroupClient<dtype>;
     group GroupMeshStreamer<dtype>;
     group MeshStreamer<dtype>;
-
 };
