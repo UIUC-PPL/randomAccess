@@ -2,7 +2,6 @@ mainmodule randomAccess {
     readonly CProxy_Main    mainProxy;
     readonly int            N;
     readonly CmiInt8        localTableSize;
-    readonly CmiInt8        tableSize;
     readonly CProxy_GroupMeshStreamer<dtype> aggregator;
     
     mainchare Main {

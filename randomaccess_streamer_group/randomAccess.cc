@@ -12,7 +12,6 @@ typedef CmiUInt8 dtype;
 CProxy_Main     mainProxy;
 int             N;                  //log local table size    
 CmiInt8         localTableSize;
-CmiInt8         tableSize;
 CProxy_GroupMeshStreamer<dtype> aggregator; 
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
@@ -21,6 +20,8 @@ class Main : public CBase_Main {
 private:
     CProxy_Updater  updater_group;
     double starttime;
+    CmiInt8 tableSize;
+
 public:
     Main(CkArgMsg* args) {
         TopoManager tmgr;
@@ -60,8 +61,8 @@ public:
     }
     
     void verifyDone(CmiInt8 globalNumErrors) {
-        CkPrintf(  "Found %lld errors in %lld locations (%s).\n", globalNumErrors, 
-            tableSize, (globalNumErrors <= 0.01*tableSize) ? "passed" : "failed");
+        CkPrintf("Found %lld errors in %lld locations (%s).\n", globalNumErrors, 
+                 tableSize, (globalNumErrors <= 0.01*tableSize) ? "passed" : "failed");
         CkExit();
     }
 };
@@ -85,16 +86,15 @@ public:
     }
 
     void generateUpdates() {
-        CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
-        GroupMeshStreamer<dtype> * streamer = ((GroupMeshStreamer<dtype> *)CkLocalBranch(aggregator));
-        for(CmiInt8 i=0; i< 4 * localTableSize; i++)
-        {
+        CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);        
+        GroupMeshStreamer<dtype> * localAggregator = aggregator.ckLocalBranch();
+        for(CmiInt8 i=0; i< 4 * localTableSize; i++) {
             ran = (ran << 1) ^ ((CmiInt8) ran < 0 ? POLY : 0);
             int tableIndex = (ran >>  N)&(CkNumPes()-1);
             //    CkPrintf("[%d] sending %lld to %d\n", CkMyPe(), ran, tableIndex);
-            streamer->insertData(ran, tableIndex);
+            localAggregator->insertData(ran, tableIndex);
         }
-        streamer->done();
+        localAggregator->done();
     }
 
     void checkErrors() {
