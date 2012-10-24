@@ -23,16 +23,10 @@ private:
     double starttime;
 public:
     Main(CkArgMsg* args) {
-        int NUM_ROWS, NUM_COLUMNS, NUM_PLANES;
         TopoManager tmgr;
         N = atoi(args->argv[1]);
-        //use this if you do not want to differentiate based on core ID's
-        NUM_ROWS = tmgr.getDimNX()*tmgr.getDimNT();
-        NUM_COLUMNS = tmgr.getDimNY();
-        NUM_PLANES = tmgr.getDimNZ();
         delete args;
-
-        int dims[3] = {NUM_ROWS, NUM_COLUMNS, NUM_PLANES}; 
+        int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
         CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
