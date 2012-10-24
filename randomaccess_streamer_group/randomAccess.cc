@@ -3,19 +3,10 @@
 typedef CmiUInt8 dtype;
 #include "randomAccess.decl.h"
 #include "TopoManager.h"
-#include "completion.h"
 #include "limits.h"
 
-#ifdef LONG_IS_64BITS
-#define ZERO64B 0L
-#define POLY 0x0000000000000007UL
-#define PERIOD 1317624576693539401L
-#else
-#define ZERO64B 0LL
 #define POLY 0x0000000000000007ULL
 #define PERIOD 1317624576693539401LL
-#endif
-
 #define NUM_MESSAGES_BUFFERED 1024
 
 CProxy_Main     mainProxy;
@@ -104,7 +95,7 @@ public:
         GroupMeshStreamer<dtype> * streamer = ((GroupMeshStreamer<dtype> *)CkLocalBranch(aggregator));
         for(CmiInt8 i=0; i< 4 * localTableSize; i++)
         {
-            ran = (ran << 1) ^ ((CmiInt8) ran < ZERO64B ? POLY : ZERO64B);
+            ran = (ran << 1) ^ ((CmiInt8) ran < 0 ? POLY : 0);
             int tableIndex = (ran >>  N)&(CkNumPes()-1);
             //    CkPrintf("[%d] sending %lld to %d\n", CkMyPe(), ran, tableIndex);
             streamer->insertData(ran, tableIndex);
