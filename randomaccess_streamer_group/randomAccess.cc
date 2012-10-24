@@ -3,16 +3,15 @@
 typedef CmiUInt8 dtype;
 #include "randomAccess.decl.h"
 #include "TopoManager.h"
-#include "limits.h"
 
 #define POLY 0x0000000000000007ULL
 #define PERIOD 1317624576693539401LL
-#define NUM_MESSAGES_BUFFERED 1024
 
-int                             N;              // log_2 of the local table size
-CmiInt8                         localTableSize; // The local table size
-CProxy_TestDriver               mainProxy;      // Handle to the test driver (chare)
-CProxy_GroupMeshStreamer<dtype> aggregator;     // Handle to the communication library (group)
+int                             N;                      // log_2 of the local table size
+CmiInt8                         localTableSize;         // The local table size
+CProxy_TestDriver               driverProxy;            // Handle to the test driver (chare)
+CProxy_GroupMeshStreamer<dtype> aggregator;             // Handle to the communication library (group)
+const int                       numMsgsBuffered = 1024; // Max number of keys buffered by communication library
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
 
@@ -24,90 +23,115 @@ private:
 
 public:
     TestDriver(CkArgMsg* args) {
-        TopoManager tmgr;
         N = atoi(args->argv[1]);
-        delete args;
-        int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
-        CkPrintf("TestDriver table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
+
+        CkPrintf("Global table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
         CkPrintf("Number of processors = %d\nNumber of updates = %lld\n", CkNumPes(), 4*tableSize);
-        mainProxy = thishandle;
+
+        driverProxy = thishandle;
         // Create the chares storing and updating the global table
         updater_group   = CProxy_Updater::ckNew();
-        //Create Mesh Streamer instance
-        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(NUM_MESSAGES_BUFFERED, 3, dims, updater_group, 1, 10);
+        // Query charm++ topology interface to obtain network topology information
+        TopoManager tmgr;
+        int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
+        // Instantiate communication library group with a handle to the client (data receiver)
+        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(numMsgsBuffered, 3, dims, updater_group, 1, 10);
+
+        delete args;
     }
 
     void start() {
         starttime = CkWallTimer();
-        // Give the updater chares the 'go' signal
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);
-        CkCallback endCb(CkIndex_TestDriver::allUpdatesDone(), thisProxy);          
-        aggregator.init(1, startCb, endCb, INT_MIN, false);
+        CkCallback endCb(CkIndex_TestDriver::startVerificationPhase(), thisProxy);          
+        // Initialize the communication library, which, upon readiness, will initiate the test via startCb
+        aggregator.init(1, startCb, endCb, 0, false);
     }
 
-    void allUpdatesDone() {
+    void startVerificationPhase() {
         double update_walltime = CkWallTimer() - starttime;
         double gups = 1e-9 * tableSize * 4.0/update_walltime;
-        double singlegups =  gups/CkNumPes();
+
         CkPrintf( "CPU time used = %.6f seconds\n", update_walltime );
         CkPrintf( "%.9f Billion(10^9) Updates    per second [GUP/s]\n",  gups);
-        CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", singlegups );
+        CkPrintf( "%.9f Billion(10^9) Updates/PE per second [GUP/s]\n", gups / CkNumPes() );
+
         // Repeat the update process to verify
+        // At the end of the second update phase, check the global table for errors in Updater::checkErrors()
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_group);
-        aggregator.init(1, startCb, endCb, INT_MIN, false);
+        // Initialize the communication library, which, upon readiness, will initiate the verification via startCb
+        aggregator.init(1, startCb, endCb, 0, false);
     }
     
-    void verifyDone(CmiInt8 globalNumErrors) {
+    void reportErrors(CmiInt8 globalNumErrors) {
         CkPrintf("Found %lld errors in %lld locations (%s).\n", globalNumErrors, 
                  tableSize, (globalNumErrors <= 0.01*tableSize) ? "passed" : "failed");
         CkExit();
     }
 };
 
+
+// Charm++ Group (i.e. one chare on each PE)
+// Each chare owns a portion of the global table and performs updates on its portion
+// Each chare also generates random keys and sends them to the appropriate chares
 class Updater : public MeshStreamerGroupClient<dtype> {
 private:
     CmiUInt8 *HPCC_Table;
     CmiUInt8 globalStartmyProc;
+
 public:
     Updater() {
+        // Compute table start for this chare
         globalStartmyProc = CkMyPe()* localTableSize  ;
+        // Create table
         HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
+        // Initialize
         for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
-        contribute(CkCallback(CkReductionTarget(TestDriver, start), mainProxy));
+        // Contribute to a reduction to signal the end of the setup phase
+        contribute(CkCallback(CkReductionTarget(TestDriver, start), driverProxy));
     }
 
+    // Communication library calls this to deliver each randomly generated key
     inline virtual void process(const dtype  &ran) {
         CmiInt8  localOffset = ran & (localTableSize - 1);
+        // Apply update
         HPCC_Table[localOffset] ^= ran;
     }
 
     void generateUpdates() {
-        CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);        
+        CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
+        // Get a pointer to the local communication library object from its proxy handle
         GroupMeshStreamer<dtype> * localAggregator = aggregator.ckLocalBranch();
+
+        // Generate this chare's share of global updates
         for(CmiInt8 i=0; i< 4 * localTableSize; i++) {
             ran = (ran << 1) ^ ((CmiInt8) ran < 0 ? POLY : 0);
             int tableIndex = (ran >>  N)&(CkNumPes()-1);
-            //    CkPrintf("[%d] sending %lld to %d\n", CkMyPe(), ran, tableIndex);
+            // Submit generated key 'ran' to chare owning that portion of the table (index = tableIndex)
             localAggregator->insertData(ran, tableIndex);
         }
+
+        // Indicate to the communication library that this chare is done sending data
         localAggregator->done();
     }
 
     void checkErrors() {
         CmiInt8 numErrors = 0;
+        // The second verification phase should have returned the table to its initial state
         for (CmiInt8 j=0; j<localTableSize; j++)
             if (HPCC_Table[j] != j + globalStartmyProc)
                 numErrors++;
         // Sum the errors observed across the entire system
-        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkReductionTarget(TestDriver,verifyDone), mainProxy));
+        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkReductionTarget(TestDriver,reportErrors), driverProxy));
     }
 };
 
-/** random generator */
+
+/** random number generator */
 CmiUInt8 HPCC_starts(CmiInt8 n) {
     int i, j;
     CmiUInt8 m2[64];
