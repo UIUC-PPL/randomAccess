@@ -9,10 +9,10 @@ typedef CmiUInt8 dtype;
 #define PERIOD 1317624576693539401LL
 #define NUM_MESSAGES_BUFFERED 1024
 
-CProxy_TestDriver     mainProxy;
-int             N;                  //log local table size    
-CmiInt8         localTableSize;
-CProxy_GroupMeshStreamer<dtype> aggregator; 
+int                             N;              // log_2 of the local table size
+CmiInt8                         localTableSize; // The local table size
+CProxy_TestDriver               mainProxy;      // Handle to the test driver (chare)
+CProxy_GroupMeshStreamer<dtype> aggregator;     // Handle to the communication library (group)
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
 
