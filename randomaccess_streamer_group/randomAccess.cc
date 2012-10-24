@@ -9,28 +9,28 @@ typedef CmiUInt8 dtype;
 #define PERIOD 1317624576693539401LL
 #define NUM_MESSAGES_BUFFERED 1024
 
-CProxy_Main     mainProxy;
+CProxy_TestDriver     mainProxy;
 int             N;                  //log local table size    
 CmiInt8         localTableSize;
 CProxy_GroupMeshStreamer<dtype> aggregator; 
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
 
-class Main : public CBase_Main {
+class TestDriver : public CBase_TestDriver {
 private:
     CProxy_Updater  updater_group;
     double starttime;
     CmiInt8 tableSize;
 
 public:
-    Main(CkArgMsg* args) {
+    TestDriver(CkArgMsg* args) {
         TopoManager tmgr;
         N = atoi(args->argv[1]);
         delete args;
         int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
-        CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
+        CkPrintf("TestDriver table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
         CkPrintf("Number of processors = %d\nNumber of updates = %lld\n", CkNumPes(), 4*tableSize);
         mainProxy = thishandle;
         // Create the chares storing and updating the global table
@@ -43,7 +43,7 @@ public:
         starttime = CkWallTimer();
         // Give the updater chares the 'go' signal
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);
-        CkCallback endCb(CkIndex_Main::allUpdatesDone(), thisProxy);          
+        CkCallback endCb(CkIndex_TestDriver::allUpdatesDone(), thisProxy);          
         aggregator.init(1, startCb, endCb, INT_MIN, false);
     }
 
@@ -77,7 +77,7 @@ public:
         HPCC_Table = (CmiUInt8*)malloc(sizeof(CmiUInt8) * localTableSize);
         for(CmiInt8 i=0; i<localTableSize; i++)
             HPCC_Table[i] = i + globalStartmyProc;
-        contribute(CkCallback(CkReductionTarget(Main, start), mainProxy));
+        contribute(CkCallback(CkReductionTarget(TestDriver, start), mainProxy));
     }
 
     inline virtual void process(const dtype  &ran) {
@@ -103,7 +103,7 @@ public:
             if (HPCC_Table[j] != j + globalStartmyProc)
                 numErrors++;
         // Sum the errors observed across the entire system
-        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkReductionTarget(Main,verifyDone), mainProxy));
+        contribute(sizeof(CmiInt8), &numErrors, CkReduction::sum_long, CkCallback(CkReductionTarget(TestDriver,verifyDone), mainProxy));
     }
 };
 

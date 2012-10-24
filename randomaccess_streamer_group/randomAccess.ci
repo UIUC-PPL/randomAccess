@@ -1,11 +1,11 @@
 mainmodule randomAccess {
     readonly int                             N;              // log_2 of the local table size
     readonly CmiInt8                         localTableSize; // The local table size
-    readonly CProxy_Main                     mainProxy;      // Handle to the test driver (chare)
+    readonly CProxy_TestDriver                     mainProxy;      // Handle to the test driver (chare)
     readonly CProxy_GroupMeshStreamer<dtype> aggregator;     // Handle to the communication library (group)
     
-    mainchare Main {
-        entry Main (CkArgMsg *args);
+    mainchare TestDriver {
+        entry TestDriver (CkArgMsg *args);
         entry [reductiontarget] void start();
         entry void allUpdatesDone();
         entry [reductiontarget] void verifyDone(CmiInt8 globalNumErrors);
