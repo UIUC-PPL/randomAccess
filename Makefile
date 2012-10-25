@@ -26,7 +26,7 @@ random_access: $(OBJFILES)
 	$(CHARMC) $(CHARMCFLAGS) $<
 
 test: $(BINARY)
-	./charmrun +p4 ./random_access 21
+	./charmrun +p4 ++local ./random_access 14
 testprj:random_access.prj
 	poe ./random_access.prj 20 1 +traceroot /u/home/ac/yanhuas/git/HPCC/charmversion_messages/projections_result -llfile jobpoelapi.cmd +gz-trace
 
