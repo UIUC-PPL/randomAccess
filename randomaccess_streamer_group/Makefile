@@ -1,4 +1,5 @@
-include ../config.mk
+CHARMHOME ?= $(HOME)/charm
+CHARMC = $(CHARMHOME)/bin/charmc
 BINARY = random_access 
 
 SRCFILES = $(wildcard *.cc) 
