@@ -47,7 +47,7 @@ public:
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);
         CkCallback endCb(CkIndex_TestDriver::startVerificationPhase(), thisProxy);          
         // Initialize the communication library, which, upon readiness, will initiate the test via startCb
-        aggregator.init(1, startCb, endCb, 0, false);
+        aggregator.init(1, startCb, endCb, -1, false);
     }
 
     void startVerificationPhase() {
@@ -63,7 +63,7 @@ public:
         CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_group);
         // Initialize the communication library, which, upon readiness, will initiate the verification via startCb
-        aggregator.init(1, startCb, endCb, 0, false);
+        aggregator.init(1, startCb, endCb, -1, false);
     }
     
     void reportErrors(CmiInt8 globalNumErrors) {
