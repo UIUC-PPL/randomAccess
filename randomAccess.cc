@@ -3,6 +3,7 @@
 typedef CmiUInt8 dtype;
 #include "randomAccess.decl.h"
 #include "TopoManager.h"
+#include <vector>
 
 #define POLY 0x0000000000000007ULL
 #define PERIOD 1317624576693539401LL
@@ -27,17 +28,37 @@ public:
         localTableSize = 1l << N;
         tableSize = localTableSize * CkNumPes();
 
-        CkPrintf("Global table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
-        CkPrintf("Number of processors = %d\nNumber of updates = %lld\n", CkNumPes(), 4*tableSize);
-
         driverProxy = thishandle;
         // Create the chares storing and updating the global table
         updater_group   = CProxy_Updater::ckNew();
         // Query charm++ topology interface to obtain network topology information
         TopoManager tmgr;
-        int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
+        std::vector<int> tramD;
+
+        if (args->argc > 2) {
+        int ndims = atoi(args->argv[2]);
+        for (int i=0; i<ndims; i++)
+            tramD.push_back( atoi(args->argv[i+3]) );
+        } else {
+            tramD.push_back( tmgr.getDimNA() * tmgr.getDimNB() );
+            tramD.push_back( tmgr.getDimNC() );
+            tramD.push_back( tmgr.getDimND() * tmgr.getDimNE() );
+            tramD.push_back( 8 );
+            tramD.push_back( tmgr.getDimNT()/8 );
+        }
+
+        CkPrintf("topo: a(%d), b(%d), c(%d), d(%d), e(%d), t(%d)\n",
+                tmgr.getDimNA(), tmgr.getDimNB(), tmgr.getDimNC(), tmgr.getDimND(), tmgr.getDimNE(), tmgr.getDimNT());
+        CkPrintf("MeshStreamer Dims (ND = %d): ", tramD.size());
+        for (int i=0; i< tramD.size(); i++)
+            CkPrintf("d%d(%d), ",i,tramD[i]);
+        CkPrintf("Main table size   = 2^%d * %d = %lld words\n", N, CkNumPes(), tableSize);
+        CkPrintf("Number of PEs = %d\n", CkNumPes());
+        CkPrintf("Number of processes = %d\n", CkNumNodes());
+        CkPrintf("Number of updates = %lld\n", (4*tableSize));
+
         // Instantiate communication library group with a handle to the client (data receiver)
-        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(numMsgsBuffered, 3, dims, updater_group, 1);
+        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(numMsgsBuffered, tramD.size(), &tramD[0], updater_group, 1);
 
         delete args;
     }
