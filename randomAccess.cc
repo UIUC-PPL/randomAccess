@@ -10,7 +10,7 @@ typedef CmiUInt8 dtype;
 int                             N;                      // log_2 of the local table size
 CmiInt8                         localTableSize;         // The local table size
 CProxy_TestDriver               driverProxy;            // Handle to the test driver (chare)
-CProxy_GroupMeshStreamer<dtype> aggregator;             // Handle to the communication library (group)
+CProxy_GroupMeshStreamer<dtype, Updater> aggregator;             // Handle to the communication library (group)
 const int                       numMsgsBuffered = 1024; // Max number of keys buffered by communication library
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
@@ -37,7 +37,7 @@ public:
         TopoManager tmgr;
         int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
         // Instantiate communication library group with a handle to the client (data receiver)
-        aggregator = CProxy_GroupMeshStreamer<dtype>::ckNew(numMsgsBuffered, 3, dims, updater_group, 1);
+        aggregator = CProxy_GroupMeshStreamer<dtype, Updater>::ckNew(numMsgsBuffered, 3, dims, updater_group, 1);
 
         delete args;
     }
@@ -77,7 +77,7 @@ public:
 // Charm++ Group (i.e. one chare on each PE)
 // Each chare owns a portion of the global table and performs updates on its portion
 // Each chare also generates random keys and sends them to the appropriate chares
-class Updater : public MeshStreamerGroupClient<dtype> {
+class Updater : public CBase_Updater {
 private:
     CmiUInt8 *HPCC_Table;
     CmiUInt8 globalStartmyProc;
@@ -96,7 +96,7 @@ public:
     }
 
     // Communication library calls this to deliver each randomly generated key
-    inline virtual void process(const dtype  &ran) {
+    inline void process(const dtype  &ran) {
         CmiInt8  localOffset = ran & (localTableSize - 1);
         // Apply update
         HPCC_Table[localOffset] ^= ran;
@@ -105,7 +105,7 @@ public:
     void generateUpdates() {
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
         // Get a pointer to the local communication library object from its proxy handle
-        GroupMeshStreamer<dtype> * localAggregator = aggregator.ckLocalBranch();
+        GroupMeshStreamer<dtype, Updater> * localAggregator = aggregator.ckLocalBranch();
 
         // Generate this chare's share of global updates
         for(CmiInt8 i=0; i< 4 * localTableSize; i++) {
