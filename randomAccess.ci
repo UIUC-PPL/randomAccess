@@ -2,7 +2,7 @@ mainmodule randomAccess {
     readonly int                             N;              // log_2 of the local table size
     readonly CmiInt8                         localTableSize; // The local table size
     readonly CProxy_TestDriver               driverProxy;    // Handle to the test driver (chare)
-    readonly CProxy_GroupMeshStreamer<dtype, Updater> aggregator;     // Handle to the communication library (group)
+    readonly CProxy_GroupMeshStreamer<dtype, Updater, SimpleMeshRouter> aggregator;     // Handle to the communication library (group)
     
     mainchare TestDriver {
         entry TestDriver (CkArgMsg *args);
@@ -22,6 +22,6 @@ mainmodule randomAccess {
 
     // Setup required for the communication library
     message MeshStreamerMessage<dtype>;
-    group GroupMeshStreamer<dtype, Updater>;
-    group MeshStreamer<dtype>;
+    group GroupMeshStreamer<dtype, Updater, SimpleMeshRouter>;
+    group MeshStreamer<dtype, SimpleMeshRouter>;
 };
