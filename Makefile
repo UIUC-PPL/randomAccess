@@ -1,4 +1,4 @@
-CHARMHOME ?= $(HOME)/charm
+CHARMHOME ?= $(HOME)/work/charm
 CHARMC = $(CHARMHOME)/bin/charmc
 BINARY = random_access 
 

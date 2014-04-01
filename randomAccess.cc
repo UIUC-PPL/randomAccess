@@ -10,7 +10,6 @@ typedef CmiUInt8 dtype;
 int                             N;                      // log_2 of the local table size
 CmiInt8                         localTableSize;         // The local table size
 CProxy_TestDriver               driverProxy;            // Handle to the test driver (chare)
-CProxy_GroupMeshStreamer<dtype, Updater> aggregator;             // Handle to the communication library (group)
 const int                       numMsgsBuffered = 1024; // Max number of keys buffered by communication library
 
 CmiUInt8 HPCC_starts(CmiInt8 n);
@@ -33,21 +32,14 @@ public:
         driverProxy = thishandle;
         // Create the chares storing and updating the global table
         updater_group   = CProxy_Updater::ckNew();
-        // Query charm++ topology interface to obtain network topology information
-        TopoManager tmgr;
-        int dims[3] = {tmgr.getDimNX() * tmgr.getDimNT(), tmgr.getDimNY(), tmgr.getDimNZ()}; 
-        // Instantiate communication library group with a handle to the client (data receiver)
-        aggregator = CProxy_GroupMeshStreamer<dtype, Updater>::ckNew(numMsgsBuffered, 3, dims, updater_group, 1);
-
         delete args;
     }
 
     void start() {
         starttime = CkWallTimer();
-        CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);
         CkCallback endCb(CkIndex_TestDriver::startVerificationPhase(), thisProxy);          
-        // Initialize the communication library, which, upon readiness, will initiate the test via startCb
-        aggregator.init(1, startCb, endCb, -1, false);
+        updater_group.generateUpdates();
+        CkStartQD(endCb);
     }
 
     void startVerificationPhase() {
@@ -60,10 +52,9 @@ public:
 
         // Repeat the update process to verify
         // At the end of the second update phase, check the global table for errors in Updater::checkErrors()
-        CkCallback startCb(CkIndex_Updater::generateUpdates(), updater_group);  
         CkCallback endCb(CkIndex_Updater::checkErrors(), updater_group);
-        // Initialize the communication library, which, upon readiness, will initiate the verification via startCb
-        aggregator.init(1, startCb, endCb, -1, false);
+        updater_group.generateUpdates();
+        CkStartQD(endCb);
     }
     
     void reportErrors(CmiInt8 globalNumErrors) {
@@ -96,7 +87,7 @@ public:
     }
 
     // Communication library calls this to deliver each randomly generated key
-    inline void process(const dtype  &ran) {
+    void process(const dtype  &ran) {
         CmiInt8  localOffset = ran & (localTableSize - 1);
         // Apply update
         HPCC_Table[localOffset] ^= ran;
@@ -104,19 +95,15 @@ public:
 
     void generateUpdates() {
         CmiUInt8 ran= HPCC_starts(4* globalStartmyProc);
-        // Get a pointer to the local communication library object from its proxy handle
-        GroupMeshStreamer<dtype, Updater> * localAggregator = aggregator.ckLocalBranch();
 
         // Generate this chare's share of global updates
         for(CmiInt8 i=0; i< 4 * localTableSize; i++) {
             ran = (ran << 1) ^ ((CmiInt8) ran < 0 ? POLY : 0);
             int tableIndex = (ran >>  N)&(CkNumPes()-1);
             // Submit generated key 'ran' to chare owning that portion of the table (index = tableIndex)
-            localAggregator->insertData(ran, tableIndex);
+            thisProxy[tableIndex].process(ran);
         }
 
-        // Indicate to the communication library that this chare is done sending data
-        localAggregator->done();
     }
 
     void checkErrors() {
