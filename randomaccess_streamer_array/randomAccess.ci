@@ -1,27 +1,26 @@
 mainmodule randomAccess {
     readonly CProxy_Main    mainProxy;
     readonly int            N;
-    readonly int            numElementsPerPe; 
+    readonly int            numElementsPerPe;
     readonly CmiInt8        localTableSize;
     readonly CmiInt8        tableSize;
-    readonly CProxy_ArrayMeshStreamer<CmiUInt8, int> aggregator; 
-    
+    readonly CProxy_ArrayMeshStreamer<CmiUInt8, int, Updater, SimpleMeshRouter> aggregator;
+
     mainchare Main {
         entry Main (CkArgMsg*);
         entry void start();
         entry void allUpdatesDone();
         entry [reductiontarget] void verifyDone(CmiInt8);
     };
-    
-    array [1D] Updater: MeshStreamerArrayClient<CmiUInt8> {
+
+    array [1D] Updater {
         entry Updater();
         entry [threaded] void  generateUpdates();
         entry void checkErrors();
     };
 
     message MeshStreamerMessage<ArrayDataItem<CmiUInt8, int> >;
-    array [1D] MeshStreamerArrayClient<CmiUInt8>;
-    group ArrayMeshStreamer<CmiUInt8, int>;    
-    group MeshStreamer<ArrayDataItem<CmiUInt8, int> >;
+    group ArrayMeshStreamer<CmiUInt8, int, Updater, SimpleMeshRouter>;
+    group MeshStreamer<ArrayDataItem<CmiUInt8, int>, SimpleMeshRouter>;
 
 };
