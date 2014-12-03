@@ -12,7 +12,7 @@ CHARMCFLAGS= $(OPTS)
 all: $(BINARY) 
 
 random_access: $(OBJFILES)
-	$(CHARMC) $(CHARMCFLAGS) -language charm++ -o $@ $+ -module NDMeshStreamer -module completion
+	$(CHARMC) $(CHARMCFLAGS) -language charm++ -o $@ $+ -module NDMeshStreamer
 
 .SECONDARY: $(patsubst %.cc,%.decl.h,$(wildcard *.cc))
 .SECONDARY: $(patsubst %.cc,%.def.h,$(wildcard *.cc))
